@@ -116,11 +116,11 @@ class _SquadKanbanScreenState extends State<SquadKanbanScreen> {
               }
 
               return ListView.separated(
-                scrollDirection: Axis.horizontal,
+                scrollDirection: Axis.vertical,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
+                    horizontal: 16, vertical: 8),
                 itemCount: _columns.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                separatorBuilder: (_, __) => const SizedBox(height: 16),
                 itemBuilder: (_, colIdx) {
                   final col = _columns[colIdx];
                   final meta = _columnMeta[col]!;
@@ -173,7 +173,7 @@ class _ColumnMeta {
 }
 
 // ─── Kanban Column ───────────────────────────────────────────────────────────
-class _KanbanColumn extends StatelessWidget {
+class _KanbanColumn extends StatefulWidget {
   final _ColumnMeta meta;
   final List<KanbanTask> tasks;
   final KanbanColumn col;
@@ -191,9 +191,16 @@ class _KanbanColumn extends StatelessWidget {
   });
 
   @override
+  State<_KanbanColumn> createState() => _KanbanColumnState();
+}
+
+class _KanbanColumnState extends State<_KanbanColumn> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
     return Container(
-      width: 220,
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(16),
@@ -202,81 +209,91 @@ class _KanbanColumn extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: meta.color.withOpacity(0.12),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    meta.label,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: meta.color,
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: meta.color,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
+          // Header - Tap to Expand/Collapse
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: widget.meta.color.withOpacity(0.12),
+                borderRadius: _expanded 
+                    ? const BorderRadius.vertical(top: Radius.circular(16))
+                    : BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
                     child: Text(
-                      '${tasks.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
+                      widget.meta.label,
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: widget.meta.color,
                       ),
                     ),
                   ),
-                ),
-              ],
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: widget.meta.color,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${widget.tasks.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    _expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    color: widget.meta.color,
+                  ),
+                ],
+              ),
             ),
           ),
 
           // Task cards
-          Expanded(
-            child: tasks.isEmpty
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text(
-                        'No tasks',
-                        style: TextStyle(
-                            color: Colors.grey, fontSize: 12),
-                      ),
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(8),
-                    itemCount: tasks.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (_, i) => _KanbanCard(
-                      task: tasks[i],
-                      uid: uid,
-                      onMove: onMove,
-                      onDelete: onDelete,
-                      colColor: meta.color,
-                    ),
+          if (_expanded)
+            if (widget.tasks.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'No tasks',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
-          ),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(12),
+                itemCount: widget.tasks.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (_, i) => _KanbanCard(
+                  task: widget.tasks[i],
+                  uid: widget.uid,
+                  onMove: widget.onMove,
+                  onDelete: widget.onDelete,
+                  colColor: widget.meta.color,
+                ),
+              ),
         ],
       ),
     );
   }
 }
+
 
 // ─── Kanban Card ─────────────────────────────────────────────────────────────
 class _KanbanCard extends StatelessWidget {
@@ -353,17 +370,45 @@ class _KanbanCard extends StatelessWidget {
                   ),
                 ),
                 if (isAssigned) ...[
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   const Text('👤',
                       style: TextStyle(fontSize: 10)),
                 ],
+                const Spacer(),
+                PopupMenuButton<KanbanColumn>(
+                  icon: Icon(Icons.more_horiz, color: Colors.grey.shade500),
+                  tooltip: 'Change Status',
+                  onSelected: (newCol) => onMove(task, newCol),
+                  itemBuilder: (context) {
+                    return KanbanColumn.values.map((c) {
+                      final meta = {
+                        KanbanColumn.backlog: '📦 Backlog',
+                        KanbanColumn.todo: '📋 To Do',
+                        KanbanColumn.doing: '🔥 In Progress',
+                        KanbanColumn.review: '🔍 In Review',
+                        KanbanColumn.done: '✅ Done',
+                      };
+                      return PopupMenuItem<KanbanColumn>(
+                        value: c,
+                        child: Row(
+                          children: [
+                            Text(meta[c] ?? c.name),
+                            if (c == task.column) ...[
+                              const Spacer(),
+                              const Icon(Icons.check, size: 16, color: Colors.green),
+                            ]
+                          ],
+                        ),
+                      );
+                    }).toList();
+                  },
+                ),
               ],
             ),
-            const SizedBox(height: 6),
             Text(
               task.title,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1A1A2E),
               ),
