@@ -154,9 +154,14 @@ class GeminiParserService {
   }
 
   /// Extracts Academic Calendar information.
-  Future<AcademicCalendar> parseAcademicCalendar(String filePath, {bool isPdf = false}) async {
+  Future<AcademicCalendar> parseAcademicCalendar(
+    String filePath, {
+    bool isPdf = false,
+  }) async {
     final Uint8List imageBytes;
     if (isPdf) {
+      // Just render the first page or iterate. For simplicity in academic calendar, 
+      // often the calendar fits on page 1.
       imageBytes = await _renderPdfToImage(filePath);
     } else {
       imageBytes = await File(filePath).readAsBytes();
@@ -175,16 +180,21 @@ class GeminiParserService {
     }
 
     String cleaned = responseText.trim();
-    if (cleaned.startsWith('```json')) cleaned = cleaned.substring(7);
-    else if (cleaned.startsWith('```')) cleaned = cleaned.substring(3);
-    if (cleaned.endsWith('```')) cleaned = cleaned.substring(0, cleaned.length - 3);
+    if (cleaned.startsWith('```json'))
+      cleaned = cleaned.substring(7);
+    else if (cleaned.startsWith('```'))
+      cleaned = cleaned.substring(3);
+    if (cleaned.endsWith('```'))
+      cleaned = cleaned.substring(0, cleaned.length - 3);
     cleaned = cleaned.trim();
 
     try {
       final json = jsonDecode(cleaned) as Map<String, dynamic>;
       return AcademicCalendar.fromJson(json);
     } catch (e) {
-      throw Exception('Failed to parse Gemini calendar JSON: $e\nRaw: $cleaned');
+      throw Exception(
+        'Failed to parse Gemini calendar JSON: $e\nRaw: $cleaned',
+      );
     }
   }
 
