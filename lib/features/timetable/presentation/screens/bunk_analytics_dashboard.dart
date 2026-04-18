@@ -23,9 +23,6 @@ class BunkAnalyticsDashboard extends StatelessWidget {
         child: Column(
           children: [
             _buildAppBar(context),
-            // Header stats
-            _buildSubjectStatusScroll(),
-            const SizedBox(height: 16),
             // Dashboard List
             Expanded(
               child: Container(
@@ -93,69 +90,6 @@ class BunkAnalyticsDashboard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSubjectStatusScroll() {
-    final subjects = plan.subjectStatus.entries.toList();
-    if (subjects.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      height: 80,
-      margin: const EdgeInsets.only(top: 8),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: subjects.length,
-        itemBuilder: (context, index) {
-          final sName = subjects[index].key;
-          final sStatus = subjects[index].value;
-          return Container(
-            width: 140,
-            margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  sName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.battery_charging_full_outlined,
-                      size: 14,
-                      color: Colors.greenAccent.shade400,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${sStatus.remainingBunks} bunks left',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
       ),
     );
   }

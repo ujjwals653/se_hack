@@ -5,6 +5,7 @@ import 'package:se_hack/features/timetable/data/models/timetable.dart';
 import 'package:se_hack/features/timetable/data/models/timetable_entry.dart';
 import 'package:se_hack/features/timetable/data/timetable_repository.dart';
 import 'package:se_hack/features/timetable/domain/ocr_parser_service.dart';
+import 'package:se_hack/features/attendance/domain/attendance_service.dart';
 
 // ─── Events ─────────────────────────────────────────────────────────────────
 
@@ -150,12 +151,15 @@ class TimetableError extends TimetableState {
 class TimetableBloc extends Bloc<TimetableEvent, TimetableState> {
   final TimetableRepository _repository;
   final GeminiParserService _parserService;
+  final AttendanceService _attendanceService;
 
   TimetableBloc({
     required TimetableRepository repository,
     required GeminiParserService parserService,
+    required AttendanceService attendanceService,
   })  : _repository = repository,
         _parserService = parserService,
+        _attendanceService = attendanceService,
         super(TimetableInitial()) {
     on<TimetableLoadRequested>(_onLoad);
     on<TimetableUploadRequested>(_onUpload);
@@ -212,6 +216,7 @@ class TimetableBloc extends Bloc<TimetableEvent, TimetableState> {
       );
       await _repository.saveTimetable(event.userId, updated);
       emit(TimetableLoaded(updated));
+      _attendanceService.refreshSubjectCounts();
     } catch (e) {
       emit(TimetableError('Failed to save timetable: $e'));
     }
@@ -255,6 +260,7 @@ class TimetableBloc extends Bloc<TimetableEvent, TimetableState> {
     // Persist in background
     try {
       await _repository.saveTimetable(event.userId, updated);
+      _attendanceService.refreshSubjectCounts();
     } catch (_) {}
   }
 
@@ -281,6 +287,7 @@ class TimetableBloc extends Bloc<TimetableEvent, TimetableState> {
 
     try {
       await _repository.saveTimetable(event.userId, updated);
+      _attendanceService.refreshSubjectCounts();
     } catch (_) {}
   }
 
@@ -313,6 +320,7 @@ class TimetableBloc extends Bloc<TimetableEvent, TimetableState> {
 
     try {
       await _repository.saveTimetable(event.userId, updated);
+      _attendanceService.refreshSubjectCounts();
     } catch (_) {}
   }
 

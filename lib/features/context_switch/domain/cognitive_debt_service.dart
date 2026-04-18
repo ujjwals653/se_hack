@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../data/app_usage_repository.dart';
+import '../../attendance/domain/attendance_service.dart';
 
 enum FocusState { notStarted, focusing, onBreak, completed }
 
@@ -13,6 +14,7 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   
+  AttendanceService? _attendanceService;
   FocusState _currentState = FocusState.notStarted;
   
   int _targetSeconds = 0;
@@ -136,8 +138,9 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  void initialize(String userId) {
+  void initialize(String userId, [AttendanceService? attService]) {
     _userId = userId;
+    _attendanceService = attService;
     // Load lifetime points
     _firestore.collection('users').doc(_userId).snapshots().listen((doc) {
       if (doc.exists) {
@@ -276,11 +279,12 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
     }
     
     if (punished) {
-        lastPenaltyMessage = "You got distracted! (-10 pts)";
+        int penalty = _attendanceService?.isOverallUrgent() == true ? 15 : 10;
+        lastPenaltyMessage = "You got distracted! (-$penalty pts)";
         showPenaltyAnimation = true;
         _penaltyCooldown = 4;
-        _updateSessionPoints(-10);
-        _showPenaltyNotification(10);
+        _updateSessionPoints(-penalty);
+        _showPenaltyNotification(penalty);
     } else {
         if (_penaltyCooldown <= 0) {
             showPenaltyAnimation = false;

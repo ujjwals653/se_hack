@@ -11,22 +11,18 @@ import 'package:se_hack/features/auth/google_auth_service.dart';
 import 'package:se_hack/features/auth/login_screen.dart';
 import 'package:se_hack/features/home/home_screen.dart';
 import 'package:se_hack/features/posts/bloc/posts_bloc.dart';
+import 'package:se_hack/features/attendance/domain/attendance_service.dart';
 import 'package:se_hack/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseAnonKey,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
   // Add global observer immediately
   WidgetsBinding.instance.addObserver(_AppLifecycleObserver());
-  
+
   runApp(const MainApp());
 }
 
@@ -36,19 +32,22 @@ class _AppLifecycleObserver extends WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    
+
     // Default to offline when detached
     String status = 'offline';
     if (state == AppLifecycleState.resumed) {
       status = 'online';
-    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       status = 'idle';
     }
 
     // Fire and forget update
-    FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-      'status': status,
-    }).catchError((_) {}); // Ignore errors if offline
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .update({'status': status})
+        .catchError((_) {}); // Ignore errors if offline
   }
 }
 
@@ -60,14 +59,12 @@ class MainApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         BlocProvider(
-          create: (_) => AuthBloc(authService: AuthService())..add(AuthStarted()),
+          create: (_) =>
+              AuthBloc(authService: AuthService())..add(AuthStarted()),
         ),
-        BlocProvider(
-          create: (_) => PostsBloc()..add(LoadPosts()),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => FocusService(),
-        ),
+        BlocProvider(create: (_) => PostsBloc()..add(LoadPosts())),
+        ChangeNotifierProvider(create: (_) => AttendanceService()),
+        ChangeNotifierProvider(create: (_) => FocusService()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -75,9 +72,7 @@ class MainApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4B4B6C)),
           useMaterial3: true,
-          textTheme: GoogleFonts.interTextTheme(
-            const TextTheme(),
-          ),
+          textTheme: GoogleFonts.interTextTheme(const TextTheme()),
         ),
         home: const _AuthGate(),
       ),

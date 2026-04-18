@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
+import 'package:se_hack/features/attendance/domain/attendance_service.dart';
 import 'package:se_hack/features/timetable/data/timetable_repository.dart';
 import 'package:se_hack/features/timetable/domain/ocr_parser_service.dart';
 import 'package:se_hack/features/timetable/presentation/screens/my_classes_screen.dart';
@@ -14,9 +16,10 @@ class TimetableScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => TimetableBloc(
+      create: (BuildContext ctx) => TimetableBloc(
         repository: TimetableRepository(),
         parserService: GeminiParserService(),
+        attendanceService: ctx.read<AttendanceService>(),
       )..add(TimetableLoadRequested(userId)),
       child: _TimetableScreenBody(userId: userId),
     );
