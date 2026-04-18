@@ -7,6 +7,7 @@ import 'package:se_hack/features/timetable/presentation/timetable_screen.dart';
 import 'package:se_hack/features/expense/bloc/expense_cubit.dart';
 import 'package:se_hack/features/expense/presentation/expense_home_screen.dart';
 import 'package:se_hack/features/posts/presentation/screens/posts_screen.dart';
+import 'package:se_hack/features/group_hub/presentation/hub_screen.dart';
 
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
@@ -33,13 +34,14 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             _currentIndex == 0
                 ? _buildHomeTab(headerColor)
                 : _currentIndex == 2
-                    ? PostsScreen(
-                        currentUid: widget.user.uid,
-                        currentUserName: widget.user.displayName,
-                        currentUserPhotoUrl: widget.user.photoUrl,
-                      )
-                    : _buildPlaceholderTab(
-                        _currentIndex == 1 ? 'Group Hub' : 'Profile'),
+                ? PostsScreen(
+                    currentUid: widget.user.uid,
+                    currentUserName: widget.user.displayName,
+                    currentUserPhotoUrl: widget.user.photoUrl,
+                  )
+                : _buildPlaceholderTab(
+                    _currentIndex == 1 ? 'Group Hub' : 'Profile',
+                  ),
 
             // Custom Bottom Navigation Bar
             Positioned(
@@ -83,10 +85,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
       children: [
         // Top Header
         Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 16,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Row(
             children: [
               GestureDetector(
@@ -140,11 +139,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 backgroundColor: Colors.white,
                 radius: 20,
                 child: IconButton(
-                  icon: const Icon(
-                    Icons.search,
-                    color: Colors.black,
-                    size: 20,
-                  ),
+                  icon: const Icon(Icons.search, color: Colors.black, size: 20),
                   onPressed: () {},
                 ),
               ),
@@ -186,9 +181,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
           child: Container(
             decoration: const BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(30),
-              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
             ),
             child: ListView(
               padding: const EdgeInsets.only(
@@ -200,10 +193,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
               children: [
                 const Text(
                   'My Favourites',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Text(
                   'Dashboards',
@@ -229,9 +219,8 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => TimetableScreen(
-                              userId: widget.user.uid,
-                            ),
+                            builder: (_) =>
+                                TimetableScreen(userId: widget.user.uid),
                           ),
                         );
                       },
@@ -286,9 +275,8 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => BunkAnalyticsWrapper(
-                              userId: widget.user.uid,
-                            ),
+                            builder: (_) =>
+                                BunkAnalyticsWrapper(userId: widget.user.uid),
                           ),
                         );
                       },
@@ -371,8 +359,11 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.construction_rounded,
-                size: 48, color: Colors.grey.shade300),
+            Icon(
+              Icons.construction_rounded,
+              size: 48,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 12),
             Text(
               label,
@@ -385,10 +376,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             const SizedBox(height: 4),
             Text(
               'Coming soon',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade400,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
             ),
           ],
         ),
@@ -582,13 +570,18 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     int index,
     IconData icon,
     String label,
-    bool isSelected,
-  ) {
+    bool isSelected, {
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
+        if (onTap != null) {
+          onTap();
+        } else {
+          setState(() {
+            _currentIndex = index;
+          });
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
