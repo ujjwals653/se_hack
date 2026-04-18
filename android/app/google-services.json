@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "912289774462",
+    "firebase_url": "https://lumina-52eeb-default-rtdb.firebaseio.com",
+    "project_id": "lumina-52eeb",
+    "storage_bucket": "lumina-52eeb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:912289774462:android:0618f499576d6b8c57d12f",
+        "android_client_info": {
+          "package_name": "com.example.se_hack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWDZNohGL4Fqr4z2KDNYP35tiyeAggTb0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:912289774462:android:9cedd3208b273eaa57d12f",
+        "android_client_info": {
+          "package_name": "com.scoders.lumina"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWDZNohGL4Fqr4z2KDNYP35tiyeAggTb0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
