@@ -6,6 +6,7 @@ import 'package:se_hack/features/timetable/presentation/screens/bunk_analytics_w
 import 'package:se_hack/features/timetable/presentation/timetable_screen.dart';
 import 'package:se_hack/features/expense/bloc/expense_cubit.dart';
 import 'package:se_hack/features/expense/presentation/expense_home_screen.dart';
+import 'package:se_hack/features/posts/presentation/screens/posts_screen.dart';
 
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
@@ -21,9 +22,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   @override
   Widget build(BuildContext context) {
     const Color headerColor = Color(0xFF4C4D7B);
-    const Color bgColor = Color(
-      0xFFF3F4F6,
-    ); // light grey, but the image is almost white. Let's use Colors.white
 
     return Scaffold(
       backgroundColor: headerColor,
@@ -31,288 +29,17 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
         bottom: false,
         child: Stack(
           children: [
-            Column(
-              children: [
-                // Top Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onLongPress: () {
-                          // Long-press avatar to sign out
-                          _showSignOutDialog(context);
-                        },
-                        child: CircleAvatar(
-                          radius: 26,
-                          backgroundColor: Colors.white24,
-                          backgroundImage: widget.user.photoUrl != null
-                              ? NetworkImage(widget.user.photoUrl!)
-                              : null,
-                          child: widget.user.photoUrl == null
-                              ? Text(
-                                  widget.user.firstName[0].toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                )
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.user.firstName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              widget.user.email,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      CircleAvatar(
-                        backgroundColor: Colors.white,
-                        radius: 20,
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.search,
-                            color: Colors.black,
-                            size: 20,
-                          ),
-                          onPressed: () {},
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      CircleAvatar(
-                        backgroundColor: Colors.white,
-                        radius: 20,
-                        child: Stack(
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.notifications_none,
-                                color: Colors.black,
-                                size: 20,
-                              ),
-                              onPressed: () {},
-                            ),
-                            Positioned(
-                              top: 10,
-                              right: 12,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: Colors.redAccent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                // Main Content Area with rounded corners
-                Expanded(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(30),
-                      ),
-                    ),
-                    child: ListView(
-                      padding: const EdgeInsets.only(
-                        top: 24,
-                        left: 20,
-                        right: 20,
-                        bottom: 100,
-                      ),
-                      children: [
-                        const Text(
-                          'My Favourites',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Text(
-                          'Dashboards',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Action Grid
-                        GridView.count(
-                          crossAxisCount: 3,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.9,
-                          children: [
-                            _buildGridItem(
-                              icon: Icons.class_outlined,
-                              title: 'My classes',
-                              color: const Color(0xFFD0F0C0),
-                              iconColor: Colors.green.shade700,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => TimetableScreen(
-                                      userId: widget.user.uid,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            _buildGridItem(
-                              icon: Icons.how_to_reg,
-                              title: 'Attendance',
-                              color: const Color(0xFFC0E8F8),
-                              iconColor: Colors.blue.shade700,
-                            ),
-                            _buildGridItem(
-                              icon: Icons.account_balance_wallet_outlined,
-                              title: 'Expense tracking',
-                              color: const Color(0xFFFFF0C0),
-                              iconColor: Colors.orange.shade700,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => BlocProvider(
-                                      create: (_) => ExpenseCubit(),
-                                      child: const ExpenseHomeScreen(),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            _buildGridItem(
-                              icon: Icons.assignment_outlined,
-                              title: 'Tasks',
-                              color: const Color(0xFFFFD0E0),
-                              iconColor: Colors.pink.shade700,
-                            ),
-                            _buildGridItem(
-                              icon: Icons.folder_open_outlined,
-                              title: 'Drive',
-                              color: const Color(0xFFD0D0FF),
-                              iconColor: Colors.indigo.shade700,
-                            ),
-                            _buildGridItem(
-                              icon: Icons.center_focus_strong_outlined,
-                              title: 'focus Mode',
-                              color: const Color(0xFFFFD0FF),
-                              iconColor: Colors.purple.shade700,
-                            ),
-                            _buildGridItem(
-                              icon: Icons.analytics_outlined,
-                              title: 'Bunk Analytics',
-                              color: const Color(0xFFFFD1B3),
-                              iconColor: Colors.deepOrange.shade700,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => BunkAnalyticsWrapper(
-                                      userId: widget.user.uid,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 24),
-                        // Schedule Header
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Schedule',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {},
-                              child: const Text(
-                                'View All',
-                                style: TextStyle(
-                                  color: headerColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Schedule List
-                        _buildScheduleItem(
-                          date: '25',
-                          month: 'Jan',
-                          color: headerColor, // dark purple
-                          title: 'Economy Class',
-                          time: '09:00 - 11:00 AM',
-                          room: 'Room E2, 2nd Floor',
-                        ),
-                        _buildScheduleItem(
-                          date: '26',
-                          month: 'Jan',
-                          color: Colors.orange,
-                          title: 'Geography Class',
-                          time: '09:00 - 11:00 AM',
-                          room: 'Room E2, 2nd Floor',
-                        ),
-                        _buildScheduleItem(
-                          date: '27',
-                          month: 'Jan',
-                          color: Colors.cyan,
-                          title: 'Accounting Class',
-                          time: '09:00 - 11:00 AM',
-                          room: 'Room E2, 2nd Floor',
-                        ),
-                        _buildScheduleItem(
-                          date: '28',
-                          month: 'Jan',
-                          color: Colors.green.shade400,
-                          title: 'Math Class',
-                          time: '09:00 - 11:00 AM',
-                          room: 'Room E2, 2nd Floor',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            // ── Tab content ──
+            _currentIndex == 0
+                ? _buildHomeTab(headerColor)
+                : _currentIndex == 2
+                    ? PostsScreen(
+                        currentUid: widget.user.uid,
+                        currentUserName: widget.user.displayName,
+                        currentUserPhotoUrl: widget.user.photoUrl,
+                      )
+                    : _buildPlaceholderTab(
+                        _currentIndex == 1 ? 'Group Hub' : 'Profile'),
 
             // Custom Bottom Navigation Bar
             Positioned(
@@ -342,6 +69,325 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                     _buildNavItem(3, Icons.person_outline, 'Profile', false),
                   ],
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The original home dashboard content.
+  Widget _buildHomeTab(Color headerColor) {
+    return Column(
+      children: [
+        // Top Header
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
+          child: Row(
+            children: [
+              GestureDetector(
+                onLongPress: () {
+                  // Long-press avatar to sign out
+                  _showSignOutDialog(context);
+                },
+                child: CircleAvatar(
+                  radius: 26,
+                  backgroundColor: Colors.white24,
+                  backgroundImage: widget.user.photoUrl != null
+                      ? NetworkImage(widget.user.photoUrl!)
+                      : null,
+                  child: widget.user.photoUrl == null
+                      ? Text(
+                          widget.user.firstName[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.user.firstName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      widget.user.email,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              CircleAvatar(
+                backgroundColor: Colors.white,
+                radius: 20,
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.search,
+                    color: Colors.black,
+                    size: 20,
+                  ),
+                  onPressed: () {},
+                ),
+              ),
+              const SizedBox(width: 8),
+              CircleAvatar(
+                backgroundColor: Colors.white,
+                radius: 20,
+                child: Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.notifications_none,
+                        color: Colors.black,
+                        size: 20,
+                      ),
+                      onPressed: () {},
+                    ),
+                    Positioned(
+                      top: 10,
+                      right: 12,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Main Content Area with rounded corners
+        Expanded(
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(30),
+              ),
+            ),
+            child: ListView(
+              padding: const EdgeInsets.only(
+                top: 24,
+                left: 20,
+                right: 20,
+                bottom: 100,
+              ),
+              children: [
+                const Text(
+                  'My Favourites',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Text(
+                  'Dashboards',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+
+                // Action Grid
+                GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 0.9,
+                  children: [
+                    _buildGridItem(
+                      icon: Icons.class_outlined,
+                      title: 'My classes',
+                      color: const Color(0xFFD0F0C0),
+                      iconColor: Colors.green.shade700,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TimetableScreen(
+                              userId: widget.user.uid,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildGridItem(
+                      icon: Icons.how_to_reg,
+                      title: 'Attendance',
+                      color: const Color(0xFFC0E8F8),
+                      iconColor: Colors.blue.shade700,
+                    ),
+                    _buildGridItem(
+                      icon: Icons.account_balance_wallet_outlined,
+                      title: 'Expense tracking',
+                      color: const Color(0xFFFFF0C0),
+                      iconColor: Colors.orange.shade700,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BlocProvider(
+                              create: (_) => ExpenseCubit(),
+                              child: const ExpenseHomeScreen(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildGridItem(
+                      icon: Icons.assignment_outlined,
+                      title: 'Tasks',
+                      color: const Color(0xFFFFD0E0),
+                      iconColor: Colors.pink.shade700,
+                    ),
+                    _buildGridItem(
+                      icon: Icons.folder_open_outlined,
+                      title: 'Drive',
+                      color: const Color(0xFFD0D0FF),
+                      iconColor: Colors.indigo.shade700,
+                    ),
+                    _buildGridItem(
+                      icon: Icons.center_focus_strong_outlined,
+                      title: 'focus Mode',
+                      color: const Color(0xFFFFD0FF),
+                      iconColor: Colors.purple.shade700,
+                    ),
+                    _buildGridItem(
+                      icon: Icons.analytics_outlined,
+                      title: 'Bunk Analytics',
+                      color: const Color(0xFFFFD1B3),
+                      iconColor: Colors.deepOrange.shade700,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BunkAnalyticsWrapper(
+                              userId: widget.user.uid,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+                // Schedule Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Schedule',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {},
+                      child: const Text(
+                        'View All',
+                        style: TextStyle(
+                          color: Color(0xFF4C4D7B),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Schedule List
+                _buildScheduleItem(
+                  date: '25',
+                  month: 'Jan',
+                  color: headerColor, // dark purple
+                  title: 'Economy Class',
+                  time: '09:00 - 11:00 AM',
+                  room: 'Room E2, 2nd Floor',
+                ),
+                _buildScheduleItem(
+                  date: '26',
+                  month: 'Jan',
+                  color: Colors.orange,
+                  title: 'Geography Class',
+                  time: '09:00 - 11:00 AM',
+                  room: 'Room E2, 2nd Floor',
+                ),
+                _buildScheduleItem(
+                  date: '27',
+                  month: 'Jan',
+                  color: Colors.cyan,
+                  title: 'Accounting Class',
+                  time: '09:00 - 11:00 AM',
+                  room: 'Room E2, 2nd Floor',
+                ),
+                _buildScheduleItem(
+                  date: '28',
+                  month: 'Jan',
+                  color: Colors.green.shade400,
+                  title: 'Math Class',
+                  time: '09:00 - 11:00 AM',
+                  room: 'Room E2, 2nd Floor',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Placeholder widget for tabs not yet built.
+  Widget _buildPlaceholderTab(String label) {
+    return Container(
+      color: Colors.white,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.construction_rounded,
+                size: 48, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.grey.shade500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Coming soon',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade400,
               ),
             ),
           ],
