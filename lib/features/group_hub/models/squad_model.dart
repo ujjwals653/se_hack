@@ -31,6 +31,7 @@ extension SquadRoleX on SquadRole {
   bool get canPromote          => this == SquadRole.leader;
   bool get canDemote           => this == SquadRole.leader;
   bool get canDisband          => this == SquadRole.leader;
+  bool get canManageWhiteboard => this == SquadRole.leader || this == SquadRole.coLeader;
 }
 
 // ─── Squad Member ─────────────────────────────────────────────────────────────
