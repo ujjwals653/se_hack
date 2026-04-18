@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_model.dart';
 import '../models/direct_message_model.dart';
 import '../../group_hub/models/chat_message_model.dart';
+import '../../group_hub/models/squad_model.dart';
 
 class FriendsRepository {
   final _db = FirebaseFirestore.instance;
@@ -62,11 +63,12 @@ class FriendsRepository {
     final snap = await _db.collection('users')
         .where('displayName', isGreaterThanOrEqualTo: query)
         .where('displayName', isLessThanOrEqualTo: '$query\uf8ff')
-        .limit(20)
+        .limit(11) // Fetch 11 in case one is the current user
         .get();
 
     return snap.docs
         .where((d) => d.id != _uid) // Exclude self
+        .take(10) // Limit exactly to 10
         .map((d) => {'uid': d.id, ...d.data()})
         .toList();
   }
@@ -121,6 +123,114 @@ class FriendsRepository {
      batch.delete(_db.collection('users').doc(fromUid).collection('friendRequests').doc(_uid));
 
      await batch.commit();
+  }
+
+  Future<void> declineFriendRequest(String fromUid) async {
+    final batch = _db.batch();
+    batch.delete(_db.collection('users').doc(_uid).collection('friendRequests').doc(fromUid));
+    batch.delete(_db.collection('users').doc(fromUid).collection('friendRequests').doc(_uid));
+    await batch.commit();
+  }
+
+  // --- SQUAD INVITE STUFF ---
+
+  /// Sends a squad invite notification to [targetUid].
+  Future<void> sendSquadInvite({
+    required String targetUid,
+    required String squadId,
+    required String squadName,
+    required String squadBadge,
+  }) async {
+    final user = _auth.currentUser!;
+    await _db
+        .collection('users')
+        .doc(targetUid)
+        .collection('notifications')
+        .doc('squad_\${squadId}_\${_uid}')
+        .set({
+      'type': 'squadInvite',
+      'squadId': squadId,
+      'squadName': squadName,
+      'squadBadge': squadBadge,
+      'fromUid': _uid,
+      'fromName': user.displayName ?? 'Someone',
+      'fromPhoto': user.photoURL,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Streams all pending notifications (friend requests + squad invites).
+  Stream<List<Map<String, dynamic>>> watchAllNotifications() {
+    // Merge friend requests (incoming) and squad invites from notifications subcollection
+    return _db
+        .collection('users')
+        .doc(_uid)
+        .collection('notifications')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .asyncMap((notifSnap) async {
+      final notifications = <Map<String, dynamic>>[];
+
+      // Squad invites from notifications collection
+      for (final doc in notifSnap.docs) {
+        notifications.add({'id': doc.id, ...doc.data()});
+      }
+
+      // Friend requests
+      final friendReqSnap = await _db
+          .collection('users')
+          .doc(_uid)
+          .collection('friendRequests')
+          .where('type', isEqualTo: 'incoming')
+          .get();
+      for (final doc in friendReqSnap.docs) {
+        notifications.add({
+          'id': doc.id,
+          'type': 'friendRequest',
+          'uid': doc.id,
+          ...doc.data()
+        });
+      }
+
+      return notifications;
+    });
+  }
+
+  /// Accept a squad invite — calls joinSquad logic directly.
+  Future<void> acceptSquadInvite(String notifId, String squadId) async {
+    final user = _auth.currentUser!;
+    // Add to squad members
+    final batch = _db.batch();
+    batch.set(
+      _db.collection('squads').doc(squadId).collection('members').doc(_uid),
+      {
+        'role': SquadRole.member.name,
+        'joinedAt': FieldValue.serverTimestamp(),
+        'displayName': user.displayName ?? 'Member',
+        'photoUrl': user.photoURL,
+      },
+    );
+    batch.update(_db.collection('squads').doc(squadId), {
+      'memberCount': FieldValue.increment(1),
+    });
+    batch.set(_db.collection('users').doc(_uid), {
+      'squadIds': FieldValue.arrayUnion([squadId]),
+    }, SetOptions(merge: true));
+    // Delete the notification
+    batch.delete(
+      _db.collection('users').doc(_uid).collection('notifications').doc(notifId),
+    );
+    await batch.commit();
+  }
+
+  /// Decline / dismiss a notification.
+  Future<void> dismissNotification(String notifId) async {
+    await _db
+        .collection('users')
+        .doc(_uid)
+        .collection('notifications')
+        .doc(notifId)
+        .delete();
   }
 
   // --- PRIVATE CHAT STUFF --- 

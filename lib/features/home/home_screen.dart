@@ -12,6 +12,7 @@ import 'package:se_hack/features/group_hub/presentation/hub_screen.dart';
 import 'package:se_hack/features/profile/presentation/profile_screen.dart';
 import 'package:se_hack/features/context_switch/presentation/focus_screen.dart' as se_hack_focus;
 import 'package:se_hack/features/context_switch/domain/cognitive_debt_service.dart';
+import 'package:se_hack/features/friends/data/friends_repository.dart';
 
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
@@ -181,34 +182,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: 20,
-                child: Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.notifications_none,
-                        color: Colors.black,
-                        size: 20,
-                      ),
-                      onPressed: () {},
-                    ),
-                    Positioned(
-                      top: 10,
-                      right: 12,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.redAccent,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _NotificationBell(),
             ],
           ),
         ),
@@ -601,6 +575,415 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ==== NOTIFICATION BELL ====
+class _NotificationBell extends StatelessWidget {
+  _NotificationBell();
+
+  final _repo = FriendsRepository();
+
+  static const Color _primary = Color(0xFF4C4D7B);
+  static const Color _accent = Color(0xFF7B61FF);
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _repo.watchAllNotifications(),
+      builder: (ctx, snap) {
+        final notifications = snap.data ?? [];
+        final count = notifications.length;
+
+        return GestureDetector(
+          onTap: () => _showNotificationPanel(context, notifications),
+          child: CircleAvatar(
+            backgroundColor: Colors.white,
+            radius: 20,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.notifications_none, color: Colors.black, size: 22),
+                if (count > 0)
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        count > 9 ? '9+' : count.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showNotificationPanel(
+    BuildContext context,
+    List<Map<String, dynamic>> notifications,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _NotificationPanel(
+        notifications: notifications,
+        repo: _repo,
+      ),
+    );
+  }
+}
+
+// ==== NOTIFICATION PANEL ====
+class _NotificationPanel extends StatelessWidget {
+  final List<Map<String, dynamic>> notifications;
+  final FriendsRepository repo;
+
+  static const Color _primary = Color(0xFF4C4D7B);
+  static const Color _accent = Color(0xFF7B61FF);
+
+  const _NotificationPanel({required this.notifications, required this.repo});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.65,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // Handle bar
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                const Text(
+                  'Notifications',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                if (notifications.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${notifications.length} new',
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          // List
+          Expanded(
+            child: notifications.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.notifications_none, size: 56, color: Colors.grey.shade300),
+                        const SizedBox(height: 12),
+                        Text(
+                          'All caught up!',
+                          style: TextStyle(fontSize: 16, color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'No new notifications.',
+                          style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                        ),
+                      ],
+                    ),
+                  )
+                : StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: repo.watchAllNotifications(),
+                    builder: (ctx, snap) {
+                      final live = snap.data ?? notifications;
+                      return ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: live.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
+                        itemBuilder: (ctx, i) {
+                          final n = live[i];
+                          final type = n['type'] as String?;
+                          if (type == 'friendRequest') {
+                            return _FriendRequestTile(
+                              notification: n,
+                              repo: repo,
+                              onAction: () => Navigator.pop(context),
+                            );
+                          } else if (type == 'squadInvite') {
+                            return _SquadInviteTile(
+                              notification: n,
+                              repo: repo,
+                              onAction: () => Navigator.pop(context),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FriendRequestTile extends StatelessWidget {
+  final Map<String, dynamic> notification;
+  final FriendsRepository repo;
+  final VoidCallback onAction;
+
+  static const Color _primary = Color(0xFF4C4D7B);
+  static const Color _accent = Color(0xFF7B61FF);
+
+  const _FriendRequestTile({
+    required this.notification,
+    required this.repo,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name = notification['displayName'] as String? ?? 'Someone';
+    final photoUrl = notification['photoUrl'] as String?;
+    final uid = notification['uid'] as String? ?? notification['id'] as String;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          // Avatar
+          CircleAvatar(
+            radius: 26,
+            backgroundColor: _primary.withOpacity(0.1),
+            backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+            child: photoUrl == null
+                ? Text(name[0].toUpperCase(),
+                    style: TextStyle(color: _primary, fontWeight: FontWeight.bold, fontSize: 18))
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    children: [
+                      TextSpan(text: name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const TextSpan(text: ' sent you a friend request'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text('👥 Friend Request',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Action buttons
+          Column(
+            children: [
+              SizedBox(
+                height: 32,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await repo.acceptFriendRequest(uid);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('$name is now your friend!')),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Accept', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                height: 28,
+                child: OutlinedButton(
+                  onPressed: () async {
+                    await repo.declineFriendRequest(uid);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Decline', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SquadInviteTile extends StatelessWidget {
+  final Map<String, dynamic> notification;
+  final FriendsRepository repo;
+  final VoidCallback onAction;
+
+  static const Color _primary = Color(0xFF4C4D7B);
+  static const Color _accent = Color(0xFF7B61FF);
+
+  const _SquadInviteTile({
+    required this.notification,
+    required this.repo,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final squadName = notification['squadName'] as String? ?? 'a Squad';
+    final squadBadge = notification['squadBadge'] as String? ?? '⚔️';
+    final fromName = notification['fromName'] as String? ?? 'Someone';
+    final squadId = notification['squadId'] as String? ?? '';
+    final notifId = notification['id'] as String? ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          // Squad badge avatar
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [_accent.withOpacity(0.15), _primary.withOpacity(0.1)],
+              ),
+            ),
+            child: Center(child: Text(squadBadge, style: const TextStyle(fontSize: 24))),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    children: [
+                      TextSpan(text: fromName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const TextSpan(text: ' invited you to '),
+                      TextSpan(text: squadName, style: TextStyle(fontWeight: FontWeight.bold, color: _accent)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text('⚔️ Squad Invite',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            children: [
+              SizedBox(
+                height: 32,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (squadId.isEmpty || notifId.isEmpty) return;
+                    await repo.acceptSquadInvite(notifId, squadId);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Joined $squadName!')),
+                      );
+                      onAction();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Join', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                height: 28,
+                child: OutlinedButton(
+                  onPressed: () async {
+                    if (notifId.isEmpty) return;
+                    await repo.dismissNotification(notifId);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Decline', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

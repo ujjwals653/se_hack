@@ -7,6 +7,8 @@ import 'deadline_radar_screen.dart';
 import 'squad_notes_screen.dart';
 import 'resource_vault_screen.dart';
 import 'user_profile_view_screen.dart';
+import '../../friends/data/friends_repository.dart';
+import '../../friends/models/friend_model.dart';
 
 class SquadHomeScreen extends StatefulWidget {
   final String squadId;
@@ -387,11 +389,15 @@ class _MembersTab extends StatelessWidget {
                 ),
                 Row(
                   children: [
+                     if (myRole.canAcceptRequests)
+                       IconButton(
+                          icon: Icon(Icons.person_add_alt_1, color: _accent),
+                          tooltip: 'Invite friend to squad',
+                          onPressed: () => _showInviteToSquad(context, members),
+                       ),
                      IconButton(
                         icon: Icon(Icons.search, color: _primary),
                         onPressed: () {
-                           // For now just show a simple snackbar or you can copy the search bottom sheet from MySquadsScreen here too if you prefer.
-                           // Actually the main search logic is on the Hub, we can just say "Go to Hub to search".
                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Use the Search in the main Hub screen to add new people.')));
                         },
                      ),
@@ -486,6 +492,104 @@ class _MembersTab extends StatelessWidget {
 
   SquadMember _emptyMember() =>
       SquadMember(uid: myUid, role: SquadRole.member, joinedAt: DateTime.now());
+
+  void _showInviteToSquad(BuildContext context, List<SquadMember> currentMembers) {
+    final friendsRepo = FriendsRepository();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (ctx) => FractionallySizedBox(
+        heightFactor: 0.7,
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Invite Friend to Squad',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
+            Expanded(
+              child: StreamBuilder<List<Friend>>(
+                stream: friendsRepo.watchFriends(),
+                builder: (ctx, snap) {
+                  if (!snap.hasData) {
+                    return const Center(child: CircularProgressIndicator(color: Color(0xFF7B61FF)));
+                  }
+                  final currentMemberUids = currentMembers.map((m) => m.uid).toSet();
+                  final friends = snap.data!.where((f) => !currentMemberUids.contains(f.uid)).toList();
+
+                  if (friends.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.people_outline, size: 48, color: Colors.grey.shade300),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No friends to invite',
+                            style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Add friends first from the Group Hub.',
+                            style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: friends.length,
+                    itemBuilder: (_, i) {
+                      final f = friends[i];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: _primary.withOpacity(0.1),
+                          backgroundImage: f.photoUrl != null ? NetworkImage(f.photoUrl!) : null,
+                          child: f.photoUrl == null
+                              ? Text(f.displayName[0], style: TextStyle(color: _primary, fontWeight: FontWeight.bold))
+                              : null,
+                        ),
+                        title: Text(f.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(
+                          f.status == UserStatus.online ? '🟢 Online' :
+                          f.status == UserStatus.idle ? '🟡 Idle' : '⚫ Invisible',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        trailing: _InviteButton(
+                          friendUid: f.uid,
+                          squadId: squadId,
+                          squadName: squad?.name ?? 'Squad',
+                          squadBadge: squad?.badge ?? '⚔️',
+                          friendsRepo: friendsRepo,
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildRequestsBtn(BuildContext context) {
     return StreamBuilder<List<Map<String, dynamic>>>(
@@ -773,4 +877,103 @@ class _MemberListTile extends StatelessWidget {
       ),
     ),
   );
+}
+
+// ─── Invite Button ────────────────────────────────────────────────────────────
+class _InviteButton extends StatefulWidget {
+  final String friendUid;
+  final String squadId;
+  final String squadName;
+  final String squadBadge;
+  final FriendsRepository friendsRepo;
+
+  const _InviteButton({
+    required this.friendUid,
+    required this.squadId,
+    required this.squadName,
+    required this.squadBadge,
+    required this.friendsRepo,
+  });
+
+  @override
+  State<_InviteButton> createState() => _InviteButtonState();
+}
+
+class _InviteButtonState extends State<_InviteButton> {
+  static const Color _accent = Color(0xFF7B61FF);
+
+  bool _sent = false;
+  bool _loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_sent) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.green.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.green.withOpacity(0.4)),
+        ),
+        child: const Text(
+          'Invited ✓',
+          style: TextStyle(
+            color: Colors.green,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      );
+    }
+    return SizedBox(
+      height: 34,
+      child: ElevatedButton(
+        onPressed: _loading ? null : _invite,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _accent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: _loading
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Text(
+                'Invite',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+      ),
+    );
+  }
+
+  Future<void> _invite() async {
+    setState(() => _loading = true);
+    try {
+      await widget.friendsRepo.sendSquadInvite(
+        targetUid: widget.friendUid,
+        squadId: widget.squadId,
+        squadName: widget.squadName,
+        squadBadge: widget.squadBadge,
+      );
+      if (mounted) setState(() {
+        _sent = true;
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send invite: $e')),
+        );
+      }
+    }
+  }
 }
