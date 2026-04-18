@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:se_hack/features/home/home_screen.dart';
+import 'package:se_hack/features/timetable/data/models/timetable_entry.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase (defaults to google-services.json)
+  await Firebase.initializeApp();
+
+  // Initialize Hive and open Timetable box
+  await Hive.initFlutter();
+  Hive.registerAdapter(TimetableEntryAdapter());
+  await Hive.openBox<TimetableEntry>('timetableBox');
+
   runApp(const MainApp());
 }
 

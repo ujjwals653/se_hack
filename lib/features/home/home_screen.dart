@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:se_hack/features/timetable/presentation/screens/timetable_screen.dart';
 
 class MainHomeScreen extends StatefulWidget {
   const MainHomeScreen({super.key});
@@ -133,6 +134,12 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                               title: 'My classes',
                               color: const Color(0xFFD0F0C0),
                               iconColor: Colors.green.shade700,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const TimetableScreen()),
+                                );
+                              },
                             ),
                             _buildGridItem(
                               icon: Icons.how_to_reg,
@@ -280,9 +287,12 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     required String title,
     required Color color,
     required Color iconColor,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -316,7 +326,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildScheduleItem({
