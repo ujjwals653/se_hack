@@ -1,0 +1,9 @@
+{
+  "name": "firebase-init",
+  "version": "1.0.0",
+  "description": "Script to initialize Firestore collections",
+  "main": "init_firestore.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
