@@ -36,37 +36,50 @@ class ExpenseRepository {
     await _itemsCol.doc(id).update({'isDeleted': true});
   }
 
-  /// Real-time stream for the current week's expenses.
   Stream<List<Expense>> watchThisWeek() {
     final weekKey = Expense.computeWeekKey(DateTime.now());
     return _itemsCol
         .where('weekKey', isEqualTo: weekKey)
-        .where('isDeleted', isEqualTo: false)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map(Expense.fromDoc).toList());
+        .map((s) {
+      final expenses = s.docs
+          .map(Expense.fromDoc)
+          .where((e) => !e.isDeleted)
+          .toList();
+      expenses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return expenses;
+    });
   }
 
-  /// Real-time stream of ALL non-deleted expenses (for analytics).
   Stream<List<Expense>> watchAllExpenses() {
     return _itemsCol
-        .where('isDeleted', isEqualTo: false)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map(Expense.fromDoc).toList());
+        .map((s) {
+      final expenses = s.docs
+          .map(Expense.fromDoc)
+          .where((e) => !e.isDeleted)
+          .toList();
+      expenses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return expenses;
+    });
   }
 
   /// Stream of expenses within a date range (for pie chart time filters).
   Stream<List<Expense>> watchExpensesByDateRange(
       DateTime start, DateTime end) {
     return _itemsCol
-        .where('isDeleted', isEqualTo: false)
         .where('createdAt',
             isGreaterThanOrEqualTo: Timestamp.fromDate(start),
             isLessThanOrEqualTo: Timestamp.fromDate(end))
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map(Expense.fromDoc).toList());
+        .map((s) {
+      final expenses = s.docs
+          .map(Expense.fromDoc)
+          .where((e) => !e.isDeleted)
+          .toList();
+      expenses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return expenses;
+    });
   }
 
   // ─── RECURRING EXPENSES ───────────────────────────────────────────────────
@@ -167,13 +180,12 @@ class ExpenseRepository {
     final end = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
 
     final snapshot = await _itemsCol
-        .where('isDeleted', isEqualTo: false)
         .where('createdAt',
             isGreaterThanOrEqualTo: Timestamp.fromDate(start),
             isLessThanOrEqualTo: Timestamp.fromDate(end))
         .get();
 
-    final expenses = snapshot.docs.map(Expense.fromDoc).toList();
+    final expenses = snapshot.docs.map(Expense.fromDoc).where((e) => !e.isDeleted).toList();
     final Map<String, double> totals = {};
     for (final e in expenses) {
       totals[e.category] = (totals[e.category] ?? 0) + e.amount;
