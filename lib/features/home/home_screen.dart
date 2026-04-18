@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:se_hack/core/models/app_user.dart';
 import 'package:se_hack/features/auth/auth_bloc.dart';
+import 'package:se_hack/features/timetable/presentation/screens/bunk_analytics_wrapper.dart';
+import 'package:se_hack/features/timetable/presentation/timetable_screen.dart';
 
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
@@ -156,6 +158,14 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                               title: 'My classes',
                               color: const Color(0xFFD0F0C0),
                               iconColor: Colors.green.shade700,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => TimetableScreen(userId: widget.user.uid),
+                                  ),
+                                );
+                              },
                             ),
                             _buildGridItem(
                               icon: Icons.how_to_reg,
@@ -188,10 +198,18 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                               iconColor: Colors.purple.shade700,
                             ),
                             _buildGridItem(
-                              icon: Icons.more_horiz,
-                              title: 'See more',
-                              color: Colors.grey.shade200,
-                              iconColor: Colors.grey.shade700,
+                              icon: Icons.analytics_outlined,
+                              title: 'Bunk Analytics',
+                              color: const Color(0xFFFFD1B3),
+                              iconColor: Colors.deepOrange.shade700,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BunkAnalyticsWrapper(userId: widget.user.uid),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -334,8 +352,11 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     required String title,
     required Color color,
     required Color iconColor,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -369,6 +390,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
