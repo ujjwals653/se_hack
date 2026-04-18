@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/services/storage_service.dart';
 import '../data/squad_repository.dart';
 import '../models/chat_message_model.dart';
+import '../../resources/repositories/resource_repository.dart';
 
 class SquadChatScreen extends StatefulWidget {
   final String squadId;
@@ -108,20 +109,37 @@ class _SquadChatScreenState extends State<SquadChatScreen>
   }
 
   Future<void> _pickAndUploadDocument() async {
-    final result = await FilePicker.platform.pickFiles();
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+    );
     if (result == null || result.files.single.path == null) return;
     final file = File(result.files.single.path!);
 
+    // Show tag sheet for resource vault
+    final tags = await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _ResourceTagSheetDummy(), 
+    );
+    if (tags == null) return;
+
     setState(() => _sending = true);
     try {
-      final url = await _storage.uploadChatAttachment(file, widget.uid);
+      final res = await ResourceRepository().uploadResource(
+        squadId: widget.squadId,
+        file: file,
+        subject: tags['subject']!,
+        semester: tags['semester']!,
+      );
+      
       await widget.repo.sendMessage(
         widget.squadId,
         MessageType.file,
-        result.files.single.name,
-        fileUrl: url,
-        fileName: result.files.single.name,
-        fileSize: result.files.single.size,
+        res.fileName,
+        fileUrl: res.supabaseUrl,
+        fileName: res.fileName,
+        fileSize: res.fileSizeBytes,
       );
       _scrollToBottom();
     } catch (e) {
@@ -759,3 +777,74 @@ class _PasteboardTab extends StatelessWidget {
     );
   }
 }
+
+class _ResourceTagSheetDummy extends StatefulWidget {
+  @override
+  State<_ResourceTagSheetDummy> createState() => _ResourceTagSheetDummyState();
+}
+
+class _ResourceTagSheetDummyState extends State<_ResourceTagSheetDummy> {
+  String _subject = 'Other';
+  String _semester = 'Sem 1';
+  final _subjects = ['DSA', 'DBMS', 'OS', 'Maths', 'CN', 'Other'];
+  final _semesters = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4', 'Sem 5', 'Sem 6'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 20,
+        right: 20,
+        top: 20,
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Tag Document', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _subject,
+                    decoration: const InputDecoration(labelText: 'Subject'),
+                    items: _subjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    onChanged: (v) => setState(() => _subject = v!),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _semester,
+                    decoration: const InputDecoration(labelText: 'Semester'),
+                    items: _semesters.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    onChanged: (v) => setState(() => _semester = v!),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4C4D7B),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Confirm & Upload'),
+                onPressed: () {
+                  Navigator.pop(context, {'subject': _subject, 'semester': _semester});
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

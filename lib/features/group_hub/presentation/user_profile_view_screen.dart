@@ -3,6 +3,7 @@ import '../../profile/data/profile_repository.dart';
 import '../../profile/models/user_profile_model.dart';
 import '../../friends/data/friends_repository.dart';
 import '../../friends/models/friend_model.dart';
+import 'friend_chat_screen.dart';
 
 class UserProfileViewScreen extends StatefulWidget {
   final String uid;
@@ -133,36 +134,103 @@ class _UserProfileViewScreenState extends State<UserProfileViewScreen> {
                 const SizedBox(height: 24),
 
                 // Action buttons
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _sendFriendRequest,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _accent,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Add Friend'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            // If already friends, they can navigate to friend_chat_screen, else a message that they need to be friends
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('You can only message friends.'),
+                StreamBuilder<bool>(
+                  stream: _friendsRepo.isFriend(widget.uid),
+                  builder: (context, friendSnap) {
+                    final isFriend = friendSnap.data ?? false;
+
+                    return StreamBuilder<bool>(
+                      stream: _friendsRepo.watchHasPendingRequest(widget.uid),
+                      builder: (context, reqSnap) {
+                        final hasPendingRequest = reqSnap.data ?? false;
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: isFriend
+                                    ? OutlinedButton(
+                                        onPressed: () async {
+                                          await _friendsRepo.unfriend(widget.uid);
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Unfriended')),
+                                            );
+                                          }
+                                        },
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: Colors.red,
+                                          side: const BorderSide(color: Colors.redAccent),
+                                        ),
+                                        child: const Text('Unfriend'),
+                                      )
+                                    : hasPendingRequest
+                                        ? ElevatedButton(
+                                            onPressed: null, // Disabled
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.grey.shade300,
+                                              disabledBackgroundColor: Colors.grey.shade300,
+                                              disabledForegroundColor: Colors.grey.shade700,
+                                              elevation: 0,
+                                            ),
+                                            child: const Text('Request Sent'),
+                                          )
+                                        : ElevatedButton(
+                                            onPressed: _sendFriendRequest,
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: _accent,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            child: const Text('Add Friend'),
+                                          ),
                               ),
-                            );
-                          },
-                          child: const Text('Message'),
-                        ),
-                      ),
-                    ],
-                  ),
+                              const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (isFriend) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => FriendChatScreen(
+                                        friend: Friend(
+                                          uid: profile.uid,
+                                          displayName: profile.displayName,
+                                          photoUrl: profile.photoUrl,
+                                          status: profile.status,
+                                          joinedAt: DateTime.now(),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('You can only message friends.'),
+                                    ),
+                                  );
+                                }
+                              },
+                              style: isFriend
+                                  ? ElevatedButton.styleFrom(
+                                      backgroundColor: _primary,
+                                      foregroundColor: Colors.white,
+                                    )
+                                  : ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.grey.shade300,
+                                      foregroundColor: Colors.grey.shade700,
+                                      elevation: 0,
+                                    ),
+                              child: const Text('Message'),
+                            ),
+                          ),
+                        ],
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
                 const SizedBox(height: 32),
 

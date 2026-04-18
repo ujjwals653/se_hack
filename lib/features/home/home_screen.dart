@@ -12,6 +12,8 @@ import 'package:se_hack/features/group_hub/presentation/hub_screen.dart';
 import 'package:se_hack/features/profile/presentation/profile_screen.dart';
 import 'package:se_hack/features/context_switch/presentation/focus_screen.dart'
     as se_hack_focus;
+import 'package:se_hack/features/resources/screens/offline_drive_screen.dart'
+    as se_hack_drive;
 import 'package:se_hack/features/context_switch/domain/cognitive_debt_service.dart';
 import 'package:se_hack/features/friends/data/friends_repository.dart';
 import 'package:se_hack/features/attendance/domain/attendance_service.dart';
@@ -292,6 +294,14 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                       title: 'Drive',
                       color: const Color(0xFFD0D0FF),
                       iconColor: Colors.indigo.shade700,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const se_hack_drive.OfflineDriveScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildGridItem(
                       icon: Icons.center_focus_strong_outlined,
@@ -827,13 +837,10 @@ class _NotificationPanel extends StatelessWidget {
   }
 }
 
-class _FriendRequestTile extends StatelessWidget {
+class _FriendRequestTile extends StatefulWidget {
   final Map<String, dynamic> notification;
   final FriendsRepository repo;
   final VoidCallback onAction;
-
-  static const Color _primary = Color(0xFF4C4D7B);
-  static const Color _accent = Color(0xFF7B61FF);
 
   const _FriendRequestTile({
     required this.notification,
@@ -842,10 +849,20 @@ class _FriendRequestTile extends StatelessWidget {
   });
 
   @override
+  State<_FriendRequestTile> createState() => _FriendRequestTileState();
+}
+
+class _FriendRequestTileState extends State<_FriendRequestTile> {
+  static const Color _primary = Color(0xFF4C4D7B);
+  static const Color _accent = Color(0xFF7B61FF);
+
+  bool _isAccepting = false;
+
+  @override
   Widget build(BuildContext context) {
-    final name = notification['displayName'] as String? ?? 'Someone';
-    final photoUrl = notification['photoUrl'] as String?;
-    final uid = notification['uid'] as String? ?? notification['id'] as String;
+    final name = widget.notification['displayName'] as String? ?? 'Someone';
+    final photoUrl = widget.notification['photoUrl'] as String?;
+    final uid = widget.notification['uid'] as String? ?? widget.notification['id'] as String;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -898,35 +915,53 @@ class _FriendRequestTile extends StatelessWidget {
             children: [
               SizedBox(
                 height: 32,
+                width: 72,
                 child: ElevatedButton(
-                  onPressed: () async {
-                    await repo.acceptFriendRequest(uid);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('$name is now your friend!')),
-                      );
-                    }
-                  },
+                  onPressed: _isAccepting
+                      ? null
+                      : () async {
+                          setState(() => _isAccepting = true);
+                          await widget.repo.acceptFriendRequest(uid);
+                          await Future.delayed(const Duration(seconds: 2));
+                          if (mounted) {
+                            setState(() => _isAccepting = false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('$name is now your friend!')),
+                            );
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _accent,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    disabledBackgroundColor: _accent.withOpacity(0.7),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Accept', style: TextStyle(fontSize: 12)),
+                  child: _isAccepting
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Accept', style: TextStyle(fontSize: 12)),
                 ),
               ),
               const SizedBox(height: 4),
               SizedBox(
                 height: 28,
                 child: OutlinedButton(
-                  onPressed: () async {
-                    await repo.declineFriendRequest(uid);
-                  },
+                  onPressed: _isAccepting
+                      ? null
+                      : () async {
+                          await widget.repo.declineFriendRequest(uid);
+                        },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.grey,
                     side: BorderSide(color: Colors.grey.shade300),
@@ -948,13 +983,10 @@ class _FriendRequestTile extends StatelessWidget {
   }
 }
 
-class _SquadInviteTile extends StatelessWidget {
+class _SquadInviteTile extends StatefulWidget {
   final Map<String, dynamic> notification;
   final FriendsRepository repo;
   final VoidCallback onAction;
-
-  static const Color _primary = Color(0xFF4C4D7B);
-  static const Color _accent = Color(0xFF7B61FF);
 
   const _SquadInviteTile({
     required this.notification,
@@ -963,12 +995,22 @@ class _SquadInviteTile extends StatelessWidget {
   });
 
   @override
+  State<_SquadInviteTile> createState() => _SquadInviteTileState();
+}
+
+class _SquadInviteTileState extends State<_SquadInviteTile> {
+  static const Color _primary = Color(0xFF4C4D7B);
+  static const Color _accent = Color(0xFF7B61FF);
+
+  bool _isJoining = false;
+
+  @override
   Widget build(BuildContext context) {
-    final squadName = notification['squadName'] as String? ?? 'a Squad';
-    final squadBadge = notification['squadBadge'] as String? ?? '⚔️';
-    final fromName = notification['fromName'] as String? ?? 'Someone';
-    final squadId = notification['squadId'] as String? ?? '';
-    final notifId = notification['id'] as String? ?? '';
+    final squadName = widget.notification['squadName'] as String? ?? 'a Squad';
+    final squadBadge = widget.notification['squadBadge'] as String? ?? '⚔️';
+    final fromName = widget.notification['fromName'] as String? ?? 'Someone';
+    final squadId = widget.notification['squadId'] as String? ?? '';
+    final notifId = widget.notification['id'] as String? ?? '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1025,38 +1067,56 @@ class _SquadInviteTile extends StatelessWidget {
             children: [
               SizedBox(
                 height: 32,
+                width: 60,
                 child: ElevatedButton(
-                  onPressed: () async {
-                    if (squadId.isEmpty || notifId.isEmpty) return;
-                    await repo.acceptSquadInvite(notifId, squadId);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Joined $squadName!')),
-                      );
-                      onAction();
-                    }
-                  },
+                  onPressed: _isJoining
+                      ? null
+                      : () async {
+                          if (squadId.isEmpty || notifId.isEmpty) return;
+                          setState(() => _isJoining = true);
+                          await widget.repo.acceptSquadInvite(notifId, squadId);
+                          await Future.delayed(const Duration(seconds: 2));
+                          if (mounted) {
+                            setState(() => _isJoining = false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Joined $squadName!')),
+                            );
+                            widget.onAction();
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    disabledBackgroundColor: _primary.withOpacity(0.7),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Join', style: TextStyle(fontSize: 12)),
+                  child: _isJoining
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Join', style: TextStyle(fontSize: 12)),
                 ),
               ),
               const SizedBox(height: 4),
               SizedBox(
                 height: 28,
                 child: OutlinedButton(
-                  onPressed: () async {
-                    if (notifId.isEmpty) return;
-                    await repo.dismissNotification(notifId);
-                  },
+                  onPressed: _isJoining
+                      ? null
+                      : () async {
+                          if (notifId.isEmpty) return;
+                          await widget.repo.dismissNotification(notifId);
+                        },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.grey,
                     side: BorderSide(color: Colors.grey.shade300),
