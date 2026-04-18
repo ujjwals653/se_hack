@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:se_hack/core/models/app_user.dart';
 import 'package:se_hack/features/auth/auth_bloc.dart';
-import 'package:se_hack/features/timetable/presentation/screens/bunk_analytics_wrapper.dart';
+import 'package:se_hack/features/calendar/bloc/calendar_bloc.dart';
+import 'package:se_hack/features/calendar/presentation/calendar_screen.dart';
 import 'package:se_hack/features/timetable/presentation/timetable_screen.dart';
 import 'package:se_hack/features/expense/bloc/expense_cubit.dart';
 import 'package:se_hack/features/expense/presentation/expense_home_screen.dart';
@@ -281,10 +282,22 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                       },
                     ),
                     _buildGridItem(
-                      icon: Icons.assignment_outlined,
-                      title: 'Tasks',
+                      icon: Icons.calendar_month_outlined,
+                      title: 'Calendar',
                       color: const Color(0xFFFFD0E0),
                       iconColor: Colors.pink.shade700,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BlocProvider(
+                              create: (_) => CalendarBloc()
+                                ..add(CalendarLoadRequested()),
+                              child: const CalendarScreen(),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     _buildGridItem(
                       icon: Icons.folder_open_outlined,
