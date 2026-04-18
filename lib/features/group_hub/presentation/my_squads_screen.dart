@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:se_hack/features/friends/data/friends_repository.dart';
 import 'package:se_hack/features/group_hub/presentation/friend_chat_screen.dart';
@@ -420,14 +421,38 @@ class _SearchUsersSheetState extends State<_SearchUsersSheet> {
   final _ctrl = TextEditingController();
   List<Map<String, dynamic>> _results = [];
   bool _searching = false;
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    if (query.trim().isEmpty) {
+      setState(() {
+        _results = [];
+        _searching = false;
+      });
+      return;
+    }
+    setState(() => _searching = true);
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _search();
+    });
+  }
 
   void _search() async {
     final q = _ctrl.text.trim();
     if (q.isEmpty) return;
     setState(() => _searching = true);
     final res = await _friendsRepo.searchUsersByName(q);
+    if (!mounted) return;
     setState(() {
-      _results = res;
+      _results = res.take(5).toList(); // Show exactly up to 5 users as requested
       _searching = false;
     });
   }
@@ -502,6 +527,7 @@ class _SearchUsersSheetState extends State<_SearchUsersSheet> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
+            onChanged: _onSearchChanged,
             onSubmitted: (_) => _search(),
           ),
           const SizedBox(height: 16),
