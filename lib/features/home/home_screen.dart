@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:se_hack/core/models/app_user.dart';
 import 'package:se_hack/features/auth/auth_bloc.dart';
+import 'package:se_hack/features/timetable/presentation/screens/bunk_analytics_wrapper.dart';
+import 'package:se_hack/features/timetable/presentation/timetable_screen.dart';
 import 'package:se_hack/features/expense/bloc/expense_cubit.dart';
 import 'package:se_hack/features/expense/presentation/expense_home_screen.dart';
 
@@ -19,8 +21,10 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   @override
   Widget build(BuildContext context) {
     const Color headerColor = Color(0xFF4C4D7B);
-    const Color bgColor = Color(0xFFF3F4F6); // light grey, but the image is almost white. Let's use Colors.white
-    
+    const Color bgColor = Color(
+      0xFFF3F4F6,
+    ); // light grey, but the image is almost white. Let's use Colors.white
+
     return Scaffold(
       backgroundColor: headerColor,
       body: SafeArea(
@@ -31,7 +35,10 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
               children: [
                 // Top Header
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
                   child: Row(
                     children: [
                       GestureDetector(
@@ -85,7 +92,11 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                         backgroundColor: Colors.white,
                         radius: 20,
                         child: IconButton(
-                          icon: const Icon(Icons.search, color: Colors.black, size: 20),
+                          icon: const Icon(
+                            Icons.search,
+                            color: Colors.black,
+                            size: 20,
+                          ),
                           onPressed: () {},
                         ),
                       ),
@@ -96,7 +107,11 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                         child: Stack(
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.notifications_none, color: Colors.black, size: 20),
+                              icon: const Icon(
+                                Icons.notifications_none,
+                                color: Colors.black,
+                                size: 20,
+                              ),
                               onPressed: () {},
                             ),
                             Positioned(
@@ -110,7 +125,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                                   shape: BoxShape.circle,
                                 ),
                               ),
-                            )
+                            ),
                           ],
                         ),
                       ),
@@ -123,10 +138,17 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                   child: Container(
                     decoration: const BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(30),
+                      ),
                     ),
                     child: ListView(
-                      padding: const EdgeInsets.only(top: 24, left: 20, right: 20, bottom: 100),
+                      padding: const EdgeInsets.only(
+                        top: 24,
+                        left: 20,
+                        right: 20,
+                        bottom: 100,
+                      ),
                       children: [
                         const Text(
                           'My Favourites',
@@ -137,13 +159,10 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                         ),
                         const Text(
                           'Dashboards',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Action Grid
                         GridView.count(
                           crossAxisCount: 3,
@@ -158,6 +177,16 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                               title: 'My classes',
                               color: const Color(0xFFD0F0C0),
                               iconColor: Colors.green.shade700,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => TimetableScreen(
+                                      userId: widget.user.uid,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                             _buildGridItem(
                               icon: Icons.how_to_reg,
@@ -201,10 +230,20 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                               iconColor: Colors.purple.shade700,
                             ),
                             _buildGridItem(
-                              icon: Icons.more_horiz,
-                              title: 'See more',
-                              color: Colors.grey.shade200,
-                              iconColor: Colors.grey.shade700,
+                              icon: Icons.analytics_outlined,
+                              title: 'Bunk Analytics',
+                              color: const Color(0xFFFFD1B3),
+                              iconColor: Colors.deepOrange.shade700,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BunkAnalyticsWrapper(
+                                      userId: widget.user.uid,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -260,7 +299,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                           time: '09:00 - 11:00 AM',
                           room: 'Room E2, 2nd Floor',
                         ),
-                         _buildScheduleItem(
+                        _buildScheduleItem(
                           date: '28',
                           month: 'Jan',
                           color: Colors.green.shade400,
@@ -274,7 +313,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 ),
               ],
             ),
-            
+
             // Custom Bottom Navigation Bar
             Positioned(
               left: 20,
@@ -349,43 +388,37 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     required Color iconColor,
     VoidCallback? onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-          border: Border.all(color: Colors.grey.shade100),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 28),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+            child: Icon(icon, color: iconColor, size: 28),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
     );
   }
@@ -429,16 +462,13 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 ),
                 Text(
                   month,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          
+
           // Timeline indicator
           Column(
             children: [
@@ -446,16 +476,13 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
               Container(
                 width: 8,
                 height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color,
-                ),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: color),
               ),
               Container(width: 2, height: 20, color: color.withOpacity(0.3)),
             ],
           ),
           const SizedBox(width: 12),
-          
+
           // Text Details
           Expanded(
             child: Column(
@@ -482,7 +509,11 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.person_outline, size: 14, color: Colors.grey),
+                    const Icon(
+                      Icons.person_outline,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       room,
@@ -498,7 +529,12 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label, bool isSelected) {
+  Widget _buildNavItem(
+    int index,
+    IconData icon,
+    String label,
+    bool isSelected,
+  ) {
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -519,7 +555,9 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
           children: [
             Icon(
               icon,
-              color: _currentIndex == index ? const Color(0xFF4C4D7B) : Colors.white70,
+              color: _currentIndex == index
+                  ? const Color(0xFF4C4D7B)
+                  : Colors.white70,
               size: 24,
             ),
             if (_currentIndex == index) ...[

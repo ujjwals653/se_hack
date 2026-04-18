@@ -12,7 +12,6 @@
 .swiftpm/
 migrate_working_dir/
 lib/core/constants/api_keys.dart
-
 # IntelliJ related
 *.iml
 *.ipr
