@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:se_hack/core/models/app_user.dart';
 import 'package:se_hack/features/auth/auth_bloc.dart';
@@ -8,6 +9,8 @@ import 'package:se_hack/features/expense/bloc/expense_cubit.dart';
 import 'package:se_hack/features/expense/presentation/expense_home_screen.dart';
 import 'package:se_hack/features/posts/presentation/screens/posts_screen.dart';
 import 'package:se_hack/features/group_hub/presentation/hub_screen.dart';
+import 'package:se_hack/features/context_switch/presentation/focus_screen.dart' as se_hack_focus;
+import 'package:se_hack/features/context_switch/domain/cognitive_debt_service.dart';
 
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
@@ -19,6 +22,16 @@ class MainHomeScreen extends StatefulWidget {
 
 class _MainHomeScreenState extends State<MainHomeScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // FocusService is created before auth completes, so we must
+    // initialize it here where the user is guaranteed to exist.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FocusService>().initialize(widget.user.uid);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +56,13 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                     currentUserPhotoUrl: widget.user.photoUrl,
                   )
                 : _buildPlaceholderTab('Profile'),
+
+            // FLOATING FOCUS TIMER OVERLAY
+            const Positioned(
+              right: 20,
+              bottom: 120, // Above bottom nav bar
+              child: _FloatingFocusTimer(),
+            ),
 
             // Custom Bottom Navigation Bar
             Positioned(
@@ -136,12 +156,27 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                   ],
                 ),
               ),
-              CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: 20,
-                child: IconButton(
-                  icon: const Icon(Icons.search, color: Colors.black, size: 20),
-                  onPressed: () {},
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF38BDF8).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.5)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.stars_rounded, color: Color(0xFF38BDF8), size: 18),
+                    const SizedBox(width: 4),
+                    Text(
+                      context.watch<FocusService>().lifetimePoints.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
@@ -266,6 +301,14 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                       title: 'focus Mode',
                       color: const Color(0xFFFFD0FF),
                       iconColor: Colors.purple.shade700,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const se_hack_focus.FocusScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildGridItem(
                       icon: Icons.analytics_outlined,
@@ -286,64 +329,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 ),
 
                 const SizedBox(height: 24),
-                // Schedule Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Schedule',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        'View All',
-                        style: TextStyle(
-                          color: Color(0xFF4C4D7B),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // Schedule List
-                _buildScheduleItem(
-                  date: '25',
-                  month: 'Jan',
-                  color: headerColor, // dark purple
-                  title: 'Economy Class',
-                  time: '09:00 - 11:00 AM',
-                  room: 'Room E2, 2nd Floor',
-                ),
-                _buildScheduleItem(
-                  date: '26',
-                  month: 'Jan',
-                  color: Colors.orange,
-                  title: 'Geography Class',
-                  time: '09:00 - 11:00 AM',
-                  room: 'Room E2, 2nd Floor',
-                ),
-                _buildScheduleItem(
-                  date: '27',
-                  month: 'Jan',
-                  color: Colors.cyan,
-                  title: 'Accounting Class',
-                  time: '09:00 - 11:00 AM',
-                  room: 'Room E2, 2nd Floor',
-                ),
-                _buildScheduleItem(
-                  date: '28',
-                  month: 'Jan',
-                  color: Colors.green.shade400,
-                  title: 'Math Class',
-                  time: '09:00 - 11:00 AM',
-                  room: 'Room E2, 2nd Floor',
-                ),
               ],
             ),
           ),
@@ -613,6 +598,80 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==== FLOATING FOCUS TIMER ====
+class _FloatingFocusTimer extends StatelessWidget {
+  const _FloatingFocusTimer({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final fs = context.watch<FocusService>();
+
+    // Only show if focusing or on break
+    if (fs.currentState == FocusState.notStarted || fs.currentState == FocusState.completed) {
+      return const SizedBox.shrink();
+    }
+
+    final isPenalty = fs.showPenaltyAnimation;
+    final isOnBreak = fs.currentState == FocusState.onBreak;
+    
+    final remaining = isOnBreak
+        ? fs.breakSecondsRemaining
+        : (fs.targetSeconds - fs.elapsedSeconds).clamp(0, fs.targetSeconds);
+        
+    final h = remaining ~/ 3600;
+    final m = (remaining % 3600) ~/ 60;
+    final s = remaining % 60;
+    final timeStr = h > 0 
+        ? '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}'
+        : '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+
+    return GestureDetector(
+      onTap: () {
+        // Return to Focus Screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const se_hack_focus.FocusScreen()),
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isPenalty ? Colors.redAccent : (isOnBreak ? Colors.blueAccent : const Color(0xFF4C4D7B)),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: (isPenalty ? Colors.redAccent : const Color(0xFF4C4D7B)).withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isPenalty ? Icons.warning_rounded : (isOnBreak ? Icons.coffee_rounded : Icons.timelapse_rounded),
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              timeStr,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                fontFamily: 'RobotoMono',
+              ),
+            ),
           ],
         ),
       ),
