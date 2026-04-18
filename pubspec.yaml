@@ -39,6 +39,7 @@ dependencies:
   file_picker: ^8.0.0
   fl_chart: ^0.69.0
   uuid: ^4.4.0
+  flutter_markdown: ^0.7.3
 
   # Firebase
   firebase_core: ^3.13.0

@@ -6,6 +6,7 @@ import 'package:se_hack/features/timetable/presentation/screens/bunk_analytics_w
 import 'package:se_hack/features/timetable/presentation/timetable_screen.dart';
 import 'package:se_hack/features/expense/bloc/expense_cubit.dart';
 import 'package:se_hack/features/expense/presentation/expense_home_screen.dart';
+import 'package:se_hack/features/group_hub/presentation/hub_screen.dart';
 
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
@@ -337,7 +338,12 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildNavItem(0, Icons.home_outlined, 'Home', true),
-                    _buildNavItem(1, Icons.group_outlined, 'Group Hub', false),
+                    _buildNavItem(1, Icons.group_outlined, 'Group Hub', false, onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const HubScreen()),
+                      );
+                    }),
                     _buildNavItem(2, Icons.post_add_outlined, 'Posts', false),
                     _buildNavItem(3, Icons.person_outline, 'Profile', false),
                   ],
@@ -536,13 +542,18 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     int index,
     IconData icon,
     String label,
-    bool isSelected,
-  ) {
+    bool isSelected, {
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
+        if (onTap != null) {
+          onTap();
+        } else {
+          setState(() {
+            _currentIndex = index;
+          });
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
