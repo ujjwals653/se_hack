@@ -1,10 +1,28 @@
-// Whiteboard placeholder — uses CustomPainter for collaborative drawing.
-// Strokes are sent via Socket.io and stored as Firestore snapshots.
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'dart:ui';
+import 'package:vector_math/vector_math_64.dart' hide Colors;
+import '../data/squad_repository.dart';
+import '../models/squad_model.dart';
+import '../models/whiteboard_model.dart';
 
 class WhiteboardScreen extends StatefulWidget {
   final String squadId;
-  const WhiteboardScreen({super.key, required this.squadId});
+  final String uid;
+  final SquadRepository repo;
+  final String whiteboardId;
+  final String whiteboardName;
+  final SquadRole myRole;
+
+  const WhiteboardScreen({
+    super.key,
+    required this.squadId,
+    required this.uid,
+    required this.repo,
+    required this.whiteboardId,
+    required this.whiteboardName,
+    required this.myRole,
+  });
 
   @override
   State<WhiteboardScreen> createState() => _WhiteboardScreenState();
@@ -12,11 +30,31 @@ class WhiteboardScreen extends StatefulWidget {
 
 class _WhiteboardScreenState extends State<WhiteboardScreen> {
   static const Color _primary = Color(0xFF4C4D7B);
+  static const Color _accent = Color(0xFF7B61FF);
 
-  final List<_Stroke> _strokes = [];
-  _Stroke? _currentStroke;
+  // Tools
+  String _activeTool = 'pen'; // 'pen', 'highlighter', 'eraser', 'rectangle', 'circle', 'line', 'sticky'
   Color _penColor = const Color(0xFF4C4D7B);
   double _strokeWidth = 4.0;
+
+  // Local drawing state for zero latency
+  WhiteboardStroke? _currentStroke;
+
+  // Transformation controller for InteractiveViewer
+  final TransformationController _transformCtrl = TransformationController();
+
+  final List<Color> _palette = [
+    const Color(0xFF4C4D7B), // primary
+    const Color(0xFF1A1A2E), // black/dark
+    const Color(0xFFE53935), // red
+    const Color(0xFF2E7D32), // green
+    const Color(0xFF1565C0), // blue
+    const Color(0xFFEF6C00), // orange
+    const Color(0xFFF5A623), // amber
+    const Color(0xFF7B61FF), // accent
+    const Color(0xFF00B4D8), // teal
+    const Color(0xFFFFFFFF), // white
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -25,101 +63,80 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1A1A2E),
-        elevation: 0,
-        title: const Text(
-          '🖊️ Whiteboard',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        elevation: 1,
+        shadowColor: Colors.black12,
+        title: Text(
+          widget.whiteboardName,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => setState(() => _strokes.clear()),
+            icon: const Icon(Icons.undo),
+            tooltip: 'Undo last stroke',
+            onPressed: () => widget.repo.undoLastStroke(widget.squadId, widget.whiteboardId),
           ),
+          if (widget.myRole.canManageWhiteboard)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep, color: Colors.redAccent),
+              tooltip: 'Clear board',
+              onPressed: () => _confirmClearBoard(),
+            ),
         ],
       ),
       body: Column(
         children: [
-          // Color palette
-          Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                ...const [
-                  Color(0xFF4C4D7B),
-                  Colors.black,
-                  Color(0xFFE53935),
-                  Color(0xFF2E7D32),
-                  Color(0xFFEF6C00),
-                  Color(0xFF7B61FF),
-                  Colors.white,
-                ].map((c) => GestureDetector(
-                      onTap: () => setState(() => _penColor = c),
+          _buildToolbar(),
+          Expanded(
+            child: ClipRect(
+              child: Stack(
+                children: [
+                  // Infinite panning canvas
+                  InteractiveViewer(
+                    transformationController: _transformCtrl,
+                    constrained: false, // Infinite canvas
+                    minScale: 0.1,
+                    maxScale: 5.0,
+                    child: GestureDetector(
+                      onPanStart: _handlePanStart,
+                      onPanUpdate: _handlePanUpdate,
+                      onPanEnd: _handlePanEnd,
+                      onTapUp: _activeTool == 'sticky' ? _handleTapUpSticky : null,
                       child: Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: c,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: _penColor == c
-                                ? const Color(0xFF7B61FF)
-                                : Colors.grey.shade300,
-                            width: _penColor == c ? 2.5 : 1,
-                          ),
+                        width: 10000,
+                        height: 10000,
+                        color: Colors.grey.shade50, // very light grid could go here
+                        child: StreamBuilder<List<WhiteboardStroke>>(
+                          stream: widget.repo.watchStrokes(widget.squadId, widget.whiteboardId),
+                          builder: (context, snapshot) {
+                            final strokes = snapshot.data ?? [];
+                            return CustomPaint(
+                              painter: _WhiteboardPainter(
+                                strokes: strokes,
+                                current: _currentStroke,
+                              ),
+                              size: const Size(10000, 10000),
+                            );
+                          },
                         ),
                       ),
-                    )),
-                const Spacer(),
-                const Text('Size:',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
-                Slider(
-                  value: _strokeWidth,
-                  min: 1,
-                  max: 20,
-                  activeColor: _primary,
-                  onChanged: (v) =>
-                      setState(() => _strokeWidth = v),
-                ),
-              ],
-            ),
-          ),
-
-          // Canvas
-          Expanded(
-            child: GestureDetector(
-              onPanStart: (d) {
-                setState(() {
-                  _currentStroke = _Stroke(
-                    color: _penColor,
-                    width: _strokeWidth,
-                    points: [d.localPosition],
-                  );
-                });
-              },
-              onPanUpdate: (d) {
-                setState(() {
-                  _currentStroke?.points.add(d.localPosition);
-                });
-              },
-              onPanEnd: (d) {
-                if (_currentStroke != null) {
-                  setState(() {
-                    _strokes.add(_currentStroke!);
-                    _currentStroke = null;
-                  });
-                }
-              },
-              child: Container(
-                color: Colors.grey.shade50,
-                child: CustomPaint(
-                  painter: _WhiteboardPainter(
-                    strokes: _strokes,
-                    current: _currentStroke,
+                    ),
                   ),
-                  child: const SizedBox.expand(),
-                ),
+
+                  // Return to center button
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    child: FloatingActionButton.small(
+                      heroTag: null,
+                      backgroundColor: Colors.white,
+                      foregroundColor: _primary,
+                      onPressed: () {
+                        _transformCtrl.value = Matrix4.identity();
+                      },
+                      child: const Icon(Icons.my_location),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -127,39 +144,345 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
       ),
     );
   }
+
+  Widget _buildToolbar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildToolBtn(Icons.edit, 'pen'),
+                _buildToolBtn(Icons.brush, 'highlighter'),
+                _buildToolBtn(Icons.crop_square, 'rectangle'),
+                _buildToolBtn(Icons.radio_button_unchecked, 'circle'),
+                _buildToolBtn(Icons.show_chart, 'line'),
+                _buildToolBtn(Icons.note_add, 'sticky'),
+                Container(width: 1, height: 24, color: Colors.grey.shade300, margin: const EdgeInsets.symmetric(horizontal: 8)),
+                _buildToolBtn(Icons.cleaning_services, 'eraser'),
+              ],
+            ),
+          ),
+          if (_activeTool != 'eraser') ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _palette.map((c) => GestureDetector(
+                        onTap: () => setState(() => _penColor = c),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: c,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _penColor == c ? _accent : Colors.grey.shade300,
+                              width: _penColor == c ? 2.5 : 1,
+                            ),
+                          ),
+                        ),
+                      )).toList(),
+                    ),
+                  ),
+                ),
+                if (_activeTool != 'sticky') ...[
+                  const SizedBox(width: 12),
+                  const Text('Size:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  SizedBox(
+                    width: 100,
+                    child: Slider(
+                      value: _strokeWidth,
+                      min: 1,
+                      max: 20,
+                      activeColor: _primary,
+                      onChanged: (v) => setState(() => _strokeWidth = v),
+                    ),
+                  ),
+                ]
+              ],
+            )
+          ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolBtn(IconData icon, String toolId) {
+    final active = _activeTool == toolId;
+    return GestureDetector(
+      onTap: () => setState(() => _activeTool = toolId),
+      child: Container(
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: active ? _accent.withOpacity(0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: active ? _accent.withOpacity(0.5) : Colors.transparent),
+        ),
+        child: Icon(icon, color: active ? _accent : Colors.grey.shade600, size: 22),
+      ),
+    );
+  }
+
+  // -------------------------
+  // Interaction Logic
+  // -------------------------
+
+  Offset _getCanvasPosition(Offset localPosition) {
+    // Convert local tap into infinite canvas coordinates by applying inverse transform
+    final RenderBox? rb = context.findRenderObject() as RenderBox?;
+    if (rb == null) return localPosition;
+    
+    // We get points back in local coord space relative to the container.
+    // Apply inverse matrix to find absolute position in the 10k x 10k space
+    final Matrix4 transform = _transformCtrl.value;
+    final Matrix4 inverse = Matrix4.inverted(transform);
+    final Vector3 untransformed = inverse.transform3(Vector3(localPosition.dx, localPosition.dy, 0));
+    return Offset(untransformed.x, untransformed.y);
+  }
+
+  void _handlePanStart(DragStartDetails details) {
+    if (_activeTool == 'sticky') return; // Stickies are created via tap
+
+    final pos = _getCanvasPosition(details.localPosition);
+    
+    setState(() {
+      _currentStroke = WhiteboardStroke(
+        id: '', // Empty until sent
+        points: [pos],
+        color: _activeTool == 'eraser' ? 0xFFFAFAFA : _penColor.value,
+        width: _activeTool == 'highlighter' ? (_strokeWidth * 3) : _activeTool == 'eraser' ? 20.0 : _strokeWidth,
+        tool: _activeTool,
+        uid: widget.uid,
+        createdAt: DateTime.now(),
+      );
+    });
+  }
+
+  void _handlePanUpdate(DragUpdateDetails details) {
+    if (_currentStroke == null) return;
+    
+    final pos = _getCanvasPosition(details.localPosition);
+    setState(() {
+      _currentStroke!.points.add(pos);
+    });
+  }
+
+  void _handlePanEnd(DragEndDetails details) async {
+    if (_currentStroke == null || _currentStroke!.points.isEmpty) return;
+
+    final strokeToSave = _currentStroke!;
+    setState(() => _currentStroke = null);
+
+    // Save to Firestore
+    await widget.repo.addStroke(widget.squadId, widget.whiteboardId, strokeToSave);
+  }
+
+  void _handleTapUpSticky(TapUpDetails details) async {
+    if (_activeTool != 'sticky') return;
+
+    final pos = _getCanvasPosition(details.localPosition);
+    
+    final ctrl = TextEditingController();
+    final text = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Sticky Note'),
+        content: TextField(
+          controller: ctrl,
+          maxLines: 4,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Type your note...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _penColor, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Pin Note'),
+          ),
+        ],
+      )
+    );
+
+    if (text != null && text.isNotEmpty) {
+      final sticky = WhiteboardStroke(
+        id: '',
+        points: [pos],
+        color: 0x00000000, // Transparent, handled by tool rendering
+        width: 1.0,
+        tool: 'sticky',
+        stickyText: text,
+        stickyColor: _penColor.value,
+        uid: widget.uid,
+        createdAt: DateTime.now(),
+      );
+      await widget.repo.addStroke(widget.squadId, widget.whiteboardId, sticky);
+    }
+  }
+
+  void _confirmClearBoard() {
+     showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Clear Whiteboard?'),
+        content: const Text('This will delete all content on this whiteboard for everyone. It cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await widget.repo.clearAllStrokes(widget.squadId, widget.whiteboardId);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+            child: const Text('Clear All'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _Stroke {
-  final Color color;
-  final double width;
-  final List<Offset> points;
-  _Stroke({required this.color, required this.width, required this.points});
-}
+// -------------------------
+// Rendering logic
+// -------------------------
 
 class _WhiteboardPainter extends CustomPainter {
-  final List<_Stroke> strokes;
-  final _Stroke? current;
+  final List<WhiteboardStroke> strokes;
+  final WhiteboardStroke? current;
+  
   _WhiteboardPainter({required this.strokes, this.current});
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (final stroke in [...strokes, if (current != null) current!]) {
-      if (stroke.points.isEmpty) continue;
+    // We compose the strokes and the current one
+    final allStrokes = [...strokes];
+    if (current != null) allStrokes.add(current!);
+
+    for (final s in allStrokes) {
+      if (s.points.isEmpty) continue;
+
+      if (s.tool == 'sticky') {
+        _paintSticky(canvas, s);
+        continue;
+      }
+
       final paint = Paint()
-        ..color = stroke.color
-        ..strokeWidth = stroke.width
+        ..color = Color(s.color).withOpacity(s.tool == 'highlighter' ? 0.3 : 1.0)
+        ..strokeWidth = s.width
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
         ..style = PaintingStyle.stroke;
 
-      final path = Path()..moveTo(stroke.points[0].dx, stroke.points[0].dy);
-      for (var i = 1; i < stroke.points.length; i++) {
-        path.lineTo(stroke.points[i].dx, stroke.points[i].dy);
+      // Handle shapes vs freehand
+      if (s.tool == 'pen' || s.tool == 'highlighter' || s.tool == 'eraser') {
+        _paintFreehand(canvas, s.points, paint);
+      } else if (s.tool == 'rectangle') {
+        _paintRect(canvas, s.points, paint);
+      } else if (s.tool == 'circle') {
+        _paintCircle(canvas, s.points, paint);
+      } else if (s.tool == 'line') {
+        _paintLine(canvas, s.points, paint);
       }
-      canvas.drawPath(path, paint);
     }
   }
 
+  void _paintFreehand(Canvas canvas, List<Offset> points, Paint paint) {
+    if (points.length == 1) {
+      canvas.drawPoints(PointMode.points, points, paint);
+      return;
+    }
+    final path = Path()..moveTo(points[0].dx, points[0].dy);
+    for (var i = 1; i < points.length; i++) {
+      path.lineTo(points[i].dx, points[i].dy);
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  void _paintRect(Canvas canvas, List<Offset> points, Paint paint) {
+    if (points.length < 2) return;
+    final start = points.first;
+    final end = points.last;
+    canvas.drawRect(Rect.fromPoints(start, end), paint);
+  }
+
+  void _paintCircle(Canvas canvas, List<Offset> points, Paint paint) {
+    if (points.length < 2) return;
+    final start = points.first;
+    final end = points.last;
+    final radius = (end - start).distance;
+    canvas.drawCircle(start, radius, paint);
+  }
+
+  void _paintLine(Canvas canvas, List<Offset> points, Paint paint) {
+     if (points.length < 2) return;
+     final start = points.first;
+     final end = points.last;
+     canvas.drawLine(start, end, paint);
+     // Arrowhead if we wanted to get fancy!
+  }
+
+  void _paintSticky(Canvas canvas, WhiteboardStroke s) {
+    final pos = s.points.first;
+    final paint = Paint()
+      ..color = Color(s.stickyColor ?? 0xFFF5A623)
+      ..style = PaintingStyle.fill;
+    
+    // Draw shadow
+    canvas.drawRect(
+      Rect.fromLTWH(pos.dx + 4, pos.dy + 4, 150, 150),
+      Paint()..color = Colors.black12
+    );
+
+    // Draw sticky body
+    canvas.drawRect(Rect.fromLTWH(pos.dx, pos.dy, 150, 150), paint);
+
+    // Draw text
+    if (s.stickyText != null) {
+      final textSpan = TextSpan(
+        text: s.stickyText,
+        style: const TextStyle(
+          color: Colors.black87,
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+      );
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+        maxLines: 5,
+      );
+      // Give it padding
+      textPainter.layout(maxWidth: 130);
+      textPainter.paint(canvas, Offset(pos.dx + 10, pos.dy + 10));
+    }
+
+    // Folded corner effect
+    final cornerPath = Path()
+      ..moveTo(pos.dx + 130, pos.dy + 150)
+      ..lineTo(pos.dx + 150, pos.dy + 130)
+      ..lineTo(pos.dx + 130, pos.dy + 130)
+      ..close();
+    canvas.drawPath(cornerPath, Paint()..color = Colors.black26);
+  }
+
   @override
-  bool shouldRepaint(_WhiteboardPainter old) => true;
+  bool shouldRepaint(_WhiteboardPainter old) => true; // simplified update
 }

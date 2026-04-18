@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum MessageType { text, code, whiteboard, file }
+enum MessageType { text, code, whiteboard, file, image }
 
 class ChatMessage {
   final String id;
@@ -9,6 +9,12 @@ class ChatMessage {
   final String content;
   final bool pinned;
   final DateTime createdAt;
+  
+  // File attachments
+  final String? fileUrl;
+  final String? fileName;
+  final int? fileSize;
+
   // Display info
   String? senderName;
   String? senderPhoto;
@@ -20,6 +26,9 @@ class ChatMessage {
     required this.content,
     this.pinned = false,
     required this.createdAt,
+    this.fileUrl,
+    this.fileName,
+    this.fileSize,
     this.senderName,
     this.senderPhoto,
   });
@@ -34,6 +43,9 @@ class ChatMessage {
       createdAt: d['createdAt'] is Timestamp
           ? (d['createdAt'] as Timestamp).toDate()
           : DateTime.tryParse(d['createdAt'] ?? '') ?? DateTime.now(),
+      fileUrl: d['fileUrl'],
+      fileName: d['fileName'],
+      fileSize: (d['fileSize'] as num?)?.toInt(),
       senderName: d['senderName'],
       senderPhoto: d['senderPhoto'],
     );
@@ -50,6 +62,9 @@ class ChatMessage {
         'content': content,
         'pinned': pinned,
         'createdAt': FieldValue.serverTimestamp(),
+        if (fileUrl != null) 'fileUrl': fileUrl,
+        if (fileName != null) 'fileName': fileName,
+        if (fileSize != null) 'fileSize': fileSize,
       };
 
   static MessageType _parseType(String t) {
@@ -60,6 +75,8 @@ class ChatMessage {
         return MessageType.whiteboard;
       case 'file':
         return MessageType.file;
+      case 'image':
+        return MessageType.image;
       default:
         return MessageType.text;
     }

@@ -135,17 +135,6 @@ class _SquadKanbanScreenState extends State<SquadKanbanScreen> {
                     onMove: (task, newCol) async {
                       await widget.repo
                           .moveKanbanTask(widget.squadId, task.id, newCol);
-                      // Award trophies on sprint complete
-                      if (newCol == KanbanColumn.done) {
-                        final done = allTasks
-                            .where(
-                                (t) => t.column == KanbanColumn.done)
-                            .length;
-                        if (done + 1 >= 5) {
-                          await widget.repo.awardTrophies(
-                              widget.squadId, 15, 'Sprint Cleared! 🎉');
-                        }
-                      }
                     },
                     onDelete: (task) async {
                       await widget.repo.deleteKanbanTask(

@@ -7,6 +7,7 @@ class TimetableEntry extends Equatable {
   final String endTime;
   final String section;
   final bool isFree;
+  final bool isLab; // true = compulsory lab rotation slot (not counted as a lecture)
 
   const TimetableEntry({
     required this.period,
@@ -15,6 +16,7 @@ class TimetableEntry extends Equatable {
     required this.endTime,
     this.section = '',
     this.isFree = false,
+    this.isLab = false,
   });
 
   TimetableEntry copyWith({
@@ -24,6 +26,7 @@ class TimetableEntry extends Equatable {
     String? endTime,
     String? section,
     bool? isFree,
+    bool? isLab,
   }) {
     return TimetableEntry(
       period: period ?? this.period,
@@ -32,6 +35,7 @@ class TimetableEntry extends Equatable {
       endTime: endTime ?? this.endTime,
       section: section ?? this.section,
       isFree: isFree ?? this.isFree,
+      isLab: isLab ?? this.isLab,
     );
   }
 
@@ -43,6 +47,7 @@ class TimetableEntry extends Equatable {
       endTime: map['endTime'] as String? ?? '',
       section: map['section'] as String? ?? '',
       isFree: map['isFree'] as bool? ?? false,
+      isLab: map['isLab'] as bool? ?? false,
     );
   }
 
@@ -54,9 +59,10 @@ class TimetableEntry extends Equatable {
       'endTime': endTime,
       'section': section,
       'isFree': isFree,
+      'isLab': isLab,
     };
   }
 
   @override
-  List<Object?> get props => [period, subject, startTime, endTime, section, isFree];
+  List<Object?> get props => [period, subject, startTime, endTime, section, isFree, isLab];
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:se_hack/core/models/app_user.dart';
 import 'package:se_hack/features/auth/auth_bloc.dart';
@@ -8,6 +9,13 @@ import 'package:se_hack/features/expense/bloc/expense_cubit.dart';
 import 'package:se_hack/features/expense/presentation/expense_home_screen.dart';
 import 'package:se_hack/features/posts/presentation/screens/posts_screen.dart';
 import 'package:se_hack/features/group_hub/presentation/hub_screen.dart';
+import 'package:se_hack/features/profile/presentation/profile_screen.dart';
+import 'package:se_hack/features/context_switch/presentation/focus_screen.dart'
+    as se_hack_focus;
+import 'package:se_hack/features/context_switch/domain/cognitive_debt_service.dart';
+import 'package:se_hack/features/friends/data/friends_repository.dart';
+import 'package:se_hack/features/attendance/domain/attendance_service.dart';
+import 'package:se_hack/features/timetable/presentation/attendance_screen.dart';
 
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
@@ -21,10 +29,22 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   int _currentIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    // FocusService is created before auth completes, so we must
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final attService = context.read<AttendanceService>();
+      attService.initialize(widget.user.uid);
+      context.read<FocusService>().initialize(widget.user.uid, attService);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     const Color headerColor = Color(0xFF4C4D7B);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: headerColor,
       body: SafeArea(
         bottom: false,
@@ -41,7 +61,14 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                     currentUserName: widget.user.displayName,
                     currentUserPhotoUrl: widget.user.photoUrl,
                   )
-                : _buildPlaceholderTab('Profile'),
+                : ProfileScreen(user: widget.user),
+
+            // FLOATING FOCUS TIMER OVERLAY
+            const Positioned(
+              right: 20,
+              bottom: 120, // Above bottom nav bar
+              child: _FloatingFocusTimer(),
+            ),
 
             // Custom Bottom Navigation Bar
             Positioned(
@@ -135,43 +162,40 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                   ],
                 ),
               ),
-              CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: 20,
-                child: IconButton(
-                  icon: const Icon(Icons.search, color: Colors.black, size: 20),
-                  onPressed: () {},
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
                 ),
-              ),
-              const SizedBox(width: 8),
-              CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: 20,
-                child: Stack(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF38BDF8).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF38BDF8).withOpacity(0.5),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.notifications_none,
-                        color: Colors.black,
-                        size: 20,
-                      ),
-                      onPressed: () {},
+                    const Icon(
+                      Icons.stars_rounded,
+                      color: Color(0xFF38BDF8),
+                      size: 18,
                     ),
-                    Positioned(
-                      top: 10,
-                      right: 12,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.redAccent,
-                          shape: BoxShape.circle,
-                        ),
+                    const SizedBox(width: 4),
+                    Text(
+                      context.watch<FocusService>().lifetimePoints.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              _NotificationBell(),
             ],
           ),
         ),
@@ -230,6 +254,14 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                       title: 'Attendance',
                       color: const Color(0xFFC0E8F8),
                       iconColor: Colors.blue.shade700,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AttendanceScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildGridItem(
                       icon: Icons.account_balance_wallet_outlined,
@@ -265,18 +297,11 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                       title: 'focus Mode',
                       color: const Color(0xFFFFD0FF),
                       iconColor: Colors.purple.shade700,
-                    ),
-                    _buildGridItem(
-                      icon: Icons.analytics_outlined,
-                      title: 'Bunk Analytics',
-                      color: const Color(0xFFFFD1B3),
-                      iconColor: Colors.deepOrange.shade700,
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                BunkAnalyticsWrapper(userId: widget.user.uid),
+                            builder: (_) => const se_hack_focus.FocusScreen(),
                           ),
                         );
                       },
@@ -285,64 +310,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 ),
 
                 const SizedBox(height: 24),
-                // Schedule Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Schedule',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        'View All',
-                        style: TextStyle(
-                          color: Color(0xFF4C4D7B),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // Schedule List
-                _buildScheduleItem(
-                  date: '25',
-                  month: 'Jan',
-                  color: headerColor, // dark purple
-                  title: 'Economy Class',
-                  time: '09:00 - 11:00 AM',
-                  room: 'Room E2, 2nd Floor',
-                ),
-                _buildScheduleItem(
-                  date: '26',
-                  month: 'Jan',
-                  color: Colors.orange,
-                  title: 'Geography Class',
-                  time: '09:00 - 11:00 AM',
-                  room: 'Room E2, 2nd Floor',
-                ),
-                _buildScheduleItem(
-                  date: '27',
-                  month: 'Jan',
-                  color: Colors.cyan,
-                  title: 'Accounting Class',
-                  time: '09:00 - 11:00 AM',
-                  room: 'Room E2, 2nd Floor',
-                ),
-                _buildScheduleItem(
-                  date: '28',
-                  month: 'Jan',
-                  color: Colors.green.shade400,
-                  title: 'Math Class',
-                  time: '09:00 - 11:00 AM',
-                  room: 'Room E2, 2nd Floor',
-                ),
               ],
             ),
           ),
@@ -612,6 +579,567 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==== NOTIFICATION BELL ====
+class _NotificationBell extends StatelessWidget {
+  _NotificationBell();
+
+  final _repo = FriendsRepository();
+
+  static const Color _primary = Color(0xFF4C4D7B);
+  static const Color _accent = Color(0xFF7B61FF);
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _repo.watchAllNotifications(),
+      builder: (ctx, snap) {
+        final notifications = snap.data ?? [];
+        final count = notifications.length;
+
+        return GestureDetector(
+          onTap: () => _showNotificationPanel(context),
+          child: CircleAvatar(
+            backgroundColor: Colors.white,
+            radius: 20,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(
+                  Icons.notifications_none,
+                  color: Colors.black,
+                  size: 22,
+                ),
+                if (count > 0)
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        count > 9 ? '9+' : count.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showNotificationPanel(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _NotificationPanel(repo: _repo),
+    );
+  }
+}
+
+// ==== NOTIFICATION PANEL ====
+class _NotificationPanel extends StatelessWidget {
+  final FriendsRepository repo;
+
+  static const Color _primary = Color(0xFF4C4D7B);
+  static const Color _accent = Color(0xFF7B61FF);
+
+  const _NotificationPanel({required this.repo});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.65,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: repo.watchAllNotifications(),
+        builder: (ctx, snap) {
+          final live = snap.data ?? [];
+          final isLoading =
+              snap.connectionState == ConnectionState.waiting && live.isEmpty;
+
+          return Column(
+            children: [
+              // Handle bar
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Notifications',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (live.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${live.length} new',
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              // List
+              Expanded(
+                child: isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF7B61FF),
+                        ),
+                      )
+                    : live.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.notifications_none,
+                              size: 56,
+                              color: Colors.grey.shade300,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'All caught up!',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey.shade500,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'No new notifications.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: live.length,
+                        separatorBuilder: (_, __) =>
+                            const Divider(height: 1, indent: 72),
+                        itemBuilder: (ctx, i) {
+                          final n = live[i];
+                          final type = n['type'] as String?;
+                          if (type == 'friendRequest') {
+                            return _FriendRequestTile(
+                              notification: n,
+                              repo: repo,
+                              onAction: () => Navigator.pop(context),
+                            );
+                          } else if (type == 'squadInvite') {
+                            return _SquadInviteTile(
+                              notification: n,
+                              repo: repo,
+                              onAction: () => Navigator.pop(context),
+                            );
+                          }
+                          // Unknown type — show a generic dismiss tile
+                          return ListTile(
+                            leading: const Icon(Icons.notifications_outlined),
+                            title: Text(
+                              n['type']?.toString() ?? 'Notification',
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () => repo.dismissNotification(
+                                n['id'] as String? ?? '',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FriendRequestTile extends StatelessWidget {
+  final Map<String, dynamic> notification;
+  final FriendsRepository repo;
+  final VoidCallback onAction;
+
+  static const Color _primary = Color(0xFF4C4D7B);
+  static const Color _accent = Color(0xFF7B61FF);
+
+  const _FriendRequestTile({
+    required this.notification,
+    required this.repo,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name = notification['displayName'] as String? ?? 'Someone';
+    final photoUrl = notification['photoUrl'] as String?;
+    final uid = notification['uid'] as String? ?? notification['id'] as String;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          // Avatar
+          CircleAvatar(
+            radius: 26,
+            backgroundColor: _primary.withOpacity(0.1),
+            backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+            child: photoUrl == null
+                ? Text(
+                    name[0].toUpperCase(),
+                    style: TextStyle(
+                      color: _primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    children: [
+                      TextSpan(
+                        text: name,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const TextSpan(text: ' sent you a friend request'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '👥 Friend Request',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Action buttons
+          Column(
+            children: [
+              SizedBox(
+                height: 32,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    await repo.acceptFriendRequest(uid);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('$name is now your friend!')),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Accept', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                height: 28,
+                child: OutlinedButton(
+                  onPressed: () async {
+                    await repo.declineFriendRequest(uid);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Decline', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SquadInviteTile extends StatelessWidget {
+  final Map<String, dynamic> notification;
+  final FriendsRepository repo;
+  final VoidCallback onAction;
+
+  static const Color _primary = Color(0xFF4C4D7B);
+  static const Color _accent = Color(0xFF7B61FF);
+
+  const _SquadInviteTile({
+    required this.notification,
+    required this.repo,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final squadName = notification['squadName'] as String? ?? 'a Squad';
+    final squadBadge = notification['squadBadge'] as String? ?? '⚔️';
+    final fromName = notification['fromName'] as String? ?? 'Someone';
+    final squadId = notification['squadId'] as String? ?? '';
+    final notifId = notification['id'] as String? ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          // Squad badge avatar
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [_accent.withOpacity(0.15), _primary.withOpacity(0.1)],
+              ),
+            ),
+            child: Center(
+              child: Text(squadBadge, style: const TextStyle(fontSize: 24)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    children: [
+                      TextSpan(
+                        text: fromName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const TextSpan(text: ' invited you to '),
+                      TextSpan(
+                        text: squadName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _accent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '⚔️ Squad Invite',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            children: [
+              SizedBox(
+                height: 32,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (squadId.isEmpty || notifId.isEmpty) return;
+                    await repo.acceptSquadInvite(notifId, squadId);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Joined $squadName!')),
+                      );
+                      onAction();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Join', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                height: 28,
+                child: OutlinedButton(
+                  onPressed: () async {
+                    if (notifId.isEmpty) return;
+                    await repo.dismissNotification(notifId);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey,
+                    side: BorderSide(color: Colors.grey.shade300),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Decline', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==== FLOATING FOCUS TIMER ====
+class _FloatingFocusTimer extends StatelessWidget {
+  const _FloatingFocusTimer({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final fs = context.watch<FocusService>();
+
+    // Only show if focusing or on break
+    if (fs.currentState == FocusState.notStarted ||
+        fs.currentState == FocusState.completed) {
+      return const SizedBox.shrink();
+    }
+
+    final isPenalty = fs.showPenaltyAnimation;
+    final isOnBreak = fs.currentState == FocusState.onBreak;
+
+    final remaining = isOnBreak
+        ? fs.breakSecondsRemaining
+        : (fs.targetSeconds - fs.elapsedSeconds).clamp(0, fs.targetSeconds);
+
+    final h = remaining ~/ 3600;
+    final m = (remaining % 3600) ~/ 60;
+    final s = remaining % 60;
+    final timeStr = h > 0
+        ? '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}'
+        : '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+
+    return GestureDetector(
+      onTap: () {
+        // Return to Focus Screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const se_hack_focus.FocusScreen(),
+          ),
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isPenalty
+              ? Colors.redAccent
+              : (isOnBreak ? Colors.blueAccent : const Color(0xFF4C4D7B)),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: (isPenalty ? Colors.redAccent : const Color(0xFF4C4D7B))
+                  .withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isPenalty
+                  ? Icons.warning_rounded
+                  : (isOnBreak
+                        ? Icons.coffee_rounded
+                        : Icons.timelapse_rounded),
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              timeStr,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                fontFamily: 'RobotoMono',
+              ),
+            ),
           ],
         ),
       ),
