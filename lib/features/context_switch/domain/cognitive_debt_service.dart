@@ -227,10 +227,27 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
 
   void _syncPointsToFirebase(int pointsToSync) {
     if (_userId == null || pointsToSync == 0) return;
-    _firestore.collection('users').doc(_userId).set({
+
+    final batch = _firestore.batch();
+    
+    // 1. Update total points
+    final userRef = _firestore.collection('users').doc(_userId);
+    batch.set(userRef, {
       'focusPoints': FieldValue.increment(pointsToSync),
+      'points': FieldValue.increment(pointsToSync), // Using points for profile
       'focusLastUpdated': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    // 2. Update Daily Heatmap Log
+    final today = DateTime.now();
+    final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final logRef = userRef.collection('activityLog').doc(dateKey);
+    batch.set(logRef, {
+       'points': FieldValue.increment(pointsToSync),
+       'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    batch.commit();
   }
 
   Future<void> _checkDistractions({bool isFromResume = false}) async {
