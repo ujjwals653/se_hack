@@ -5,6 +5,7 @@ import 'package:se_hack/features/timetable/data/models/bunk_plan.dart';
 import 'package:se_hack/features/timetable/data/timetable_repository.dart';
 import 'package:se_hack/features/timetable/domain/bunk_recommendation_engine.dart';
 import 'package:se_hack/features/timetable/domain/ocr_parser_service.dart';
+import 'package:se_hack/features/attendance/domain/attendance_service.dart';
 
 // --- Events ---
 abstract class BunkAnalyticsEvent extends Equatable {
@@ -74,15 +75,18 @@ class BunkAnalyticsBloc extends Bloc<BunkAnalyticsEvent, BunkAnalyticsState> {
   final BunkAnalyticsRepository _repo;
   final TimetableRepository _timetableRepo;
   final GeminiParserService _parser;
+  final AttendanceService _attendanceService;
   final BunkRecommendationEngine _engine = BunkRecommendationEngine();
 
   BunkAnalyticsBloc({
     required BunkAnalyticsRepository repository,
     required TimetableRepository timetableRepository,
     required GeminiParserService parserService,
+    required AttendanceService attendanceService,
   })  : _repo = repository,
         _timetableRepo = timetableRepository,
         _parser = parserService,
+        _attendanceService = attendanceService,
         super(BunkAnalyticsInitial()) {
     on<LoadBunkPlan>(_onLoad);
     on<UploadAcademicCalendar>(_onUpload);
@@ -119,8 +123,16 @@ class BunkAnalyticsBloc extends Bloc<BunkAnalyticsEvent, BunkAnalyticsState> {
         isPdf: event.isPdf,
       );
 
-      // 3. Generate Plan
-      final plan = _engine.generatePlan(timetable, calendar);
+      // Seed subjects into Firestore / local cache based on this new timetable
+      await _attendanceService.seedSubjectsFromTimetable(timetable);
+
+      // 3. Generate Plan using live attendance data
+      final plan = _engine.generatePlan(
+         timetable, 
+         calendar, 
+         liveStats: _attendanceService.stats,
+      );
+      await _attendanceService.updateTotalPlannedFromPlan(plan);
 
       // 4. Save
       await _repo.saveAcademicCalendar(event.userId, calendar);

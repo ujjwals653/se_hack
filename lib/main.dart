@@ -11,6 +11,7 @@ import 'package:se_hack/features/auth/google_auth_service.dart';
 import 'package:se_hack/features/auth/login_screen.dart';
 import 'package:se_hack/features/home/home_screen.dart';
 import 'package:se_hack/features/posts/bloc/posts_bloc.dart';
+import 'package:se_hack/features/attendance/domain/attendance_service.dart';
 import 'package:se_hack/firebase_options.dart';
 
 void main() async {
@@ -32,6 +33,7 @@ class MainApp extends StatelessWidget {
               AuthBloc(authService: AuthService())..add(AuthStarted()),
         ),
         BlocProvider(create: (_) => PostsBloc()..add(LoadPosts())),
+        ChangeNotifierProvider(create: (_) => AttendanceService()),
         ChangeNotifierProvider(create: (_) => FocusService()),
       ],
       child: MaterialApp(

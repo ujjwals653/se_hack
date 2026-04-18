@@ -12,6 +12,8 @@ import 'package:se_hack/features/group_hub/presentation/hub_screen.dart';
 import 'package:se_hack/features/profile/presentation/profile_screen.dart';
 import 'package:se_hack/features/context_switch/presentation/focus_screen.dart' as se_hack_focus;
 import 'package:se_hack/features/context_switch/domain/cognitive_debt_service.dart';
+import 'package:se_hack/features/attendance/domain/attendance_service.dart';
+import 'package:se_hack/features/timetable/presentation/attendance_screen.dart';
 
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
@@ -28,9 +30,10 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   void initState() {
     super.initState();
     // FocusService is created before auth completes, so we must
-    // initialize it here where the user is guaranteed to exist.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FocusService>().initialize(widget.user.uid);
+      final attService = context.read<AttendanceService>();
+      attService.initialize(widget.user.uid);
+      context.read<FocusService>().initialize(widget.user.uid, attService);
     });
   }
 
@@ -267,6 +270,14 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                       title: 'Attendance',
                       color: const Color(0xFFC0E8F8),
                       iconColor: Colors.blue.shade700,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AttendanceScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildGridItem(
                       icon: Icons.account_balance_wallet_outlined,
@@ -307,21 +318,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const se_hack_focus.FocusScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildGridItem(
-                      icon: Icons.analytics_outlined,
-                      title: 'Bunk Analytics',
-                      color: const Color(0xFFFFD1B3),
-                      iconColor: Colors.deepOrange.shade700,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                BunkAnalyticsWrapper(userId: widget.user.uid),
                           ),
                         );
                       },
