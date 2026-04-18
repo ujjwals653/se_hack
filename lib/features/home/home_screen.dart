@@ -33,15 +33,15 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             // ── Tab content ──
             _currentIndex == 0
                 ? _buildHomeTab(headerColor)
+                : _currentIndex == 1
+                ? const HubScreen()
                 : _currentIndex == 2
                 ? PostsScreen(
                     currentUid: widget.user.uid,
                     currentUserName: widget.user.displayName,
                     currentUserPhotoUrl: widget.user.photoUrl,
                   )
-                : _buildPlaceholderTab(
-                    _currentIndex == 1 ? 'Group Hub' : 'Profile',
-                  ),
+                : _buildPlaceholderTab('Profile'),
 
             // Custom Bottom Navigation Bar
             Positioned(
