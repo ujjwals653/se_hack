@@ -52,3 +52,4 @@ app.*.map.json
 # Firebase Config & Admin Keys
 serviceAccount.json
 google-services.json
+lib/core/constants/env.dart
