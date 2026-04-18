@@ -7,6 +7,7 @@ import 'deadline_radar_screen.dart';
 import 'squad_notes_screen.dart';
 import 'resource_vault_screen.dart';
 import 'user_profile_view_screen.dart';
+import 'whiteboard_list_screen.dart';
 import '../../friends/data/friends_repository.dart';
 import '../../friends/models/friend_model.dart';
 
@@ -27,13 +28,14 @@ class _SquadHomeScreenState extends State<SquadHomeScreen>
   final _repo = SquadRepository();
   late TabController _tabs;
 
-  // 5 tabs: Chat, Taskboard, Deadlines, Notes Wiki, Resources
+  // 6 tabs: Chat, Taskboard, Deadlines, Notes Wiki, Resources, Whiteboard
   static const _tabLabels = [
     ('💬', 'Chat'),
     ('📋', 'Taskboard'),
     ('📅', 'Deadlines'),
     ('📝', 'Notes Wiki'),
     ('📦', 'Resources'),
+    ('🎨', 'Whiteboard'),
   ];
 
   @override
@@ -299,6 +301,13 @@ class _SquadHomeScreenState extends State<SquadHomeScreen>
                           squadId: widget.squadId,
                           uid: widget.uid,
                           repo: _repo,
+                        ),
+                        // 5 – Whiteboard
+                        WhiteboardListScreen(
+                          squadId: widget.squadId,
+                          uid: widget.uid,
+                          repo: _repo,
+                          myRole: SquadRole.member,
                         ),
                       ],
                     ),

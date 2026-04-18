@@ -6,6 +6,7 @@ import '../models/kanban_task_model.dart';
 import '../models/deadline_model.dart';
 import '../models/notes_page_model.dart';
 import '../models/challenge_resource_model.dart';
+import '../models/whiteboard_model.dart';
 
 class SquadRepository {
   final _db = FirebaseFirestore.instance;
@@ -525,5 +526,100 @@ class SquadRepository {
       'examPrepSubject': null,
       'examPrepDate': null,
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WHITEBOARDS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Future<String> createWhiteboard(String squadId, String name) async {
+    final ref = await _db
+        .collection('squads')
+        .doc(squadId)
+        .collection('whiteboards')
+        .add({
+      'name': name,
+      'createdBy': _uid,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    return ref.id;
+  }
+
+  Stream<List<Whiteboard>> watchWhiteboards(String squadId) => _db
+      .collection('squads')
+      .doc(squadId)
+      .collection('whiteboards')
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map((s) => s.docs.map(Whiteboard.fromDoc).toList());
+
+  Future<void> deleteWhiteboard(String squadId, String whiteboardId) async {
+    // Delete all strokes first
+    final strokes = await _db
+        .collection('squads')
+        .doc(squadId)
+        .collection('whiteboards')
+        .doc(whiteboardId)
+        .collection('strokes')
+        .get();
+    final batch = _db.batch();
+    for (final doc in strokes.docs) {
+      batch.delete(doc.reference);
+    }
+    batch.delete(
+      _db.collection('squads').doc(squadId).collection('whiteboards').doc(whiteboardId),
+    );
+    await batch.commit();
+  }
+
+  Stream<List<WhiteboardStroke>> watchStrokes(String squadId, String whiteboardId) => _db
+      .collection('squads')
+      .doc(squadId)
+      .collection('whiteboards')
+      .doc(whiteboardId)
+      .collection('strokes')
+      .orderBy('createdAt')
+      .snapshots()
+      .map((s) => s.docs.map(WhiteboardStroke.fromDoc).toList());
+
+  Future<void> addStroke(String squadId, String whiteboardId, WhiteboardStroke stroke) async {
+    await _db
+        .collection('squads')
+        .doc(squadId)
+        .collection('whiteboards')
+        .doc(whiteboardId)
+        .collection('strokes')
+        .add(stroke.toMap());
+  }
+
+  Future<void> undoLastStroke(String squadId, String whiteboardId) async {
+    final snap = await _db
+        .collection('squads')
+        .doc(squadId)
+        .collection('whiteboards')
+        .doc(whiteboardId)
+        .collection('strokes')
+        .where('uid', isEqualTo: _uid)
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+    if (snap.docs.isNotEmpty) {
+      await snap.docs.first.reference.delete();
+    }
+  }
+
+  Future<void> clearAllStrokes(String squadId, String whiteboardId) async {
+    final snap = await _db
+        .collection('squads')
+        .doc(squadId)
+        .collection('whiteboards')
+        .doc(whiteboardId)
+        .collection('strokes')
+        .get();
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
   }
 }
