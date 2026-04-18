@@ -1,10 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:se_hack/core/constants/api_keys.dart';
 import 'package:se_hack/features/auth/auth_bloc.dart';
+import 'package:se_hack/features/context_switch/domain/cognitive_debt_service.dart';
 import 'package:se_hack/features/auth/google_auth_service.dart';
 import 'package:se_hack/features/auth/login_screen.dart';
 import 'package:se_hack/features/home/home_screen.dart';
@@ -28,13 +30,16 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
+    return MultiProvider(
       providers: [
         BlocProvider(
           create: (_) => AuthBloc(authService: AuthService())..add(AuthStarted()),
         ),
         BlocProvider(
           create: (_) => PostsBloc()..add(LoadPosts()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => FocusService(),
         ),
       ],
       child: MaterialApp(
