@@ -12,6 +12,8 @@ import 'package:se_hack/features/group_hub/presentation/hub_screen.dart';
 import 'package:se_hack/features/profile/presentation/profile_screen.dart';
 import 'package:se_hack/features/context_switch/presentation/focus_screen.dart'
     as se_hack_focus;
+import 'package:se_hack/features/resources/screens/offline_drive_screen.dart'
+    as se_hack_drive;
 import 'package:se_hack/features/context_switch/domain/cognitive_debt_service.dart';
 import 'package:se_hack/features/friends/data/friends_repository.dart';
 import 'package:se_hack/features/attendance/domain/attendance_service.dart';
@@ -291,6 +293,14 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                       title: 'Drive',
                       color: const Color(0xFFD0D0FF),
                       iconColor: Colors.indigo.shade700,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const se_hack_drive.OfflineDriveScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _buildGridItem(
                       icon: Icons.center_focus_strong_outlined,

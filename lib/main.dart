@@ -15,11 +15,18 @@ import 'package:se_hack/features/attendance/domain/attendance_service.dart';
 import 'package:se_hack/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:se_hack/features/resources/models/cached_resource.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  
+  await Hive.initFlutter();
+  Hive.registerAdapter(CachedResourceAdapter());
+  await Hive.openBox<CachedResource>('resource_cache');
+
   // Add global observer immediately
   WidgetsBinding.instance.addObserver(_AppLifecycleObserver());
 
