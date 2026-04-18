@@ -6,15 +6,18 @@
 
 #include "generated_plugin_registrant.h"
 
-#include <native_pdf_renderer/native_pdf_renderer_plugin.h>
+#include <connectivity_plus/connectivity_plus_windows_plugin.h>
 #include <pdfx/pdfx_plugin.h>
+#include <permission_handler_windows/permission_handler_windows_plugin.h>
 #include <url_launcher_windows/url_launcher_windows.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
-  NativePdfRendererPluginRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("NativePdfRendererPlugin"));
+  ConnectivityPlusWindowsPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("ConnectivityPlusWindowsPlugin"));
   PdfxPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("PdfxPlugin"));
+  PermissionHandlerWindowsPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("PermissionHandlerWindowsPlugin"));
   UrlLauncherWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("UrlLauncherWindows"));
 }
