@@ -6,6 +6,7 @@ import 'squad_kanban_screen.dart';
 import 'deadline_radar_screen.dart';
 import 'squad_notes_screen.dart';
 import 'resource_vault_screen.dart';
+import 'user_profile_view_screen.dart';
 
 class SquadHomeScreen extends StatefulWidget {
   final String squadId;
@@ -384,23 +385,35 @@ class _MembersTab extends StatelessWidget {
                     color: Colors.grey.shade800,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${members.length} / ${squad?.maxMembers ?? 15}',
-                    style: TextStyle(
-                      color: _primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
+                Row(
+                  children: [
+                     IconButton(
+                        icon: Icon(Icons.search, color: _primary),
+                        onPressed: () {
+                           // For now just show a simple snackbar or you can copy the search bottom sheet from MySquadsScreen here too if you prefer.
+                           // Actually the main search logic is on the Hub, we can just say "Go to Hub to search".
+                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Use the Search in the main Hub screen to add new people.')));
+                        },
+                     ),
+                     Container(
+                       padding: const EdgeInsets.symmetric(
+                         horizontal: 10,
+                         vertical: 4,
+                       ),
+                       decoration: BoxDecoration(
+                         color: _primary.withOpacity(0.08),
+                         borderRadius: BorderRadius.circular(12),
+                       ),
+                       child: Text(
+                         '${members.length} / ${squad?.maxMembers ?? 15}',
+                         style: TextStyle(
+                           color: _primary,
+                           fontWeight: FontWeight.bold,
+                           fontSize: 13,
+                         ),
+                       ),
+                     ),
+                  ],
                 ),
               ],
             ),
@@ -440,7 +453,11 @@ class _MembersTab extends StatelessWidget {
                 member: members[i],
                 isMe: members[i].uid == myUid,
                 myRole: myRole,
-                onTap: () => _showMemberActions(context, members[i], myRole),
+                onTap: () {
+                   if (members[i].uid != myUid) {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => UserProfileViewScreen(uid: members[i].uid)));
+                   }
+                },
               ),
             ),
 

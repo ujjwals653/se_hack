@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:se_hack/features/friends/data/friends_repository.dart';
+import 'package:se_hack/features/group_hub/presentation/friend_chat_screen.dart';
+import '../../friends/models/friend_model.dart';
 import '../data/squad_repository.dart';
 import '../models/squad_model.dart';
 import 'squad_home_screen.dart';
 import 'squad_discovery_screen.dart';
 import 'create_squad_screen.dart';
 
-class MySquadsScreen extends StatelessWidget {
+class MySquadsScreen extends StatefulWidget {
   final List<String> squadIds;
   final String uid;
   final SquadRepository repo;
@@ -17,8 +20,16 @@ class MySquadsScreen extends StatelessWidget {
     required this.repo,
   });
 
+  @override
+  State<MySquadsScreen> createState() => _MySquadsScreenState();
+}
+
+class _MySquadsScreenState extends State<MySquadsScreen> {
   static const Color _primary = Color(0xFF4C4D7B);
   static const Color _accent = Color(0xFF7B61FF);
+  
+  int _selectedTab = 0; // 0: All, 1: Friends, 2: Squads
+  final _friendsRepo = FriendsRepository();
 
   @override
   Widget build(BuildContext context) {
@@ -48,24 +59,57 @@ class MySquadsScreen extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
-                      _headerIcon(Icons.search, () {}),
-                      _headerIcon(Icons.more_vert, () {
-                        _showMoreMenu(context);
-                      }),
+                      // Show Friend Requests Badge logic here
+                      StreamBuilder<List<Map<String, dynamic>>>(
+                        stream: _friendsRepo.watchFriendRequests(),
+                        builder: (ctx, snap) {
+                           final count = snap.data?.length ?? 0;
+                           if (count == 0) return _headerIcon(Icons.person_add_outlined, _showSearchBottomSheet);
+                           return Stack(
+                              children: [
+                                _headerIcon(Icons.person_add_outlined, _showSearchBottomSheet),
+                                Positioned(
+                                  right: 8,
+                                  top: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.redAccent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      count.toString(),
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                           );
+                        },
+                      ),
+                      _headerIcon(Icons.more_vert, () => _showMoreMenu(context)),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  // Tabs row (like WhatsApp's Chats / Status / Calls)
+                  // Tabs row
                   Row(
                     children: [
-                      _TabChip(label: 'All', selected: true, onTap: () {}),
-                      const SizedBox(width: 8),
-                      _TabChip(label: 'Study', selected: false, onTap: () {}),
+                      _TabChip(
+                        label: 'All', 
+                        selected: _selectedTab == 0, 
+                        onTap: () => setState(() => _selectedTab = 0)
+                      ),
                       const SizedBox(width: 8),
                       _TabChip(
-                        label: 'Projects',
-                        selected: false,
-                        onTap: () {},
+                        label: 'Friends', 
+                        selected: _selectedTab == 1, 
+                        onTap: () => setState(() => _selectedTab = 1)
+                      ),
+                      const SizedBox(width: 8),
+                      _TabChip(
+                        label: 'Squads',
+                        selected: _selectedTab == 2,
+                        onTap: () => setState(() => _selectedTab = 2)
                       ),
                     ],
                   ),
@@ -74,38 +118,23 @@ class MySquadsScreen extends StatelessWidget {
               ),
             ),
 
-            // ── Squad list ──
+            // ── List Area ──
             Expanded(
               child: Container(
                 color: Colors.white,
-                child: ListView.builder(
-                  padding: const EdgeInsets.only(top: 0, bottom: 100),
-                  itemCount: squadIds.length,
-                  itemBuilder: (ctx, i) {
-                    final sId = squadIds[i];
-                    return StreamBuilder<Squad?>(
-                      stream: repo.watchSquad(sId),
-                      builder: (ctx, snap) {
-                        if (!snap.hasData) {
-                          return _buildShimmerItem();
-                        }
-                        final squad = snap.data;
-                        if (squad == null) return const SizedBox.shrink();
-                        return _SquadListTile(
-                          squad: squad,
-                          squadId: sId,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    SquadHomeScreen(squadId: sId, uid: uid),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    );
+                child: StreamBuilder<List<Friend>>(
+                  stream: _friendsRepo.watchFriends(),
+                  builder: (ctx, snap) {
+                     final friends = snap.data ?? [];
+                     
+                     if (_selectedTab == 1) {
+                        return _buildFriendsList(friends);
+                     } else if (_selectedTab == 2) {
+                        return _buildSquadsList();
+                     } else {
+                        // ALL tab
+                        return _buildAllList(friends);
+                     }
                   },
                 ),
               ),
@@ -118,7 +147,6 @@ class MySquadsScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Small FAB for join
             FloatingActionButton.small(
               heroTag: 'join',
               backgroundColor: _primary.withOpacity(0.85),
@@ -129,7 +157,6 @@ class MySquadsScreen extends StatelessWidget {
               child: const Icon(Icons.search, color: Colors.white, size: 20),
             ),
             const SizedBox(height: 12),
-            // Main FAB for create
             FloatingActionButton(
               heroTag: 'create',
               backgroundColor: _accent,
@@ -145,6 +172,82 @@ class MySquadsScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildFriendsList(List<Friend> friends) {
+     if (friends.isEmpty) return const Center(child: Text("No friends yet. Search and add some!"));
+     return ListView.builder(
+        padding: const EdgeInsets.only(bottom: 100),
+        itemCount: friends.length,
+        itemBuilder: (_, i) => _FriendListTile(friend: friends[i]),
+     );
+  }
+
+  Widget _buildSquadsList() {
+     return ListView.builder(
+        padding: const EdgeInsets.only(bottom: 100),
+        itemCount: widget.squadIds.length,
+        itemBuilder: (ctx, i) {
+          final sId = widget.squadIds[i];
+          return StreamBuilder<Squad?>(
+            stream: widget.repo.watchSquad(sId),
+            builder: (ctx, snap) {
+              if (!snap.hasData) return _buildShimmerItem();
+              final squad = snap.data;
+              if (squad == null) return const SizedBox.shrink();
+              return _SquadListTile(
+                squad: squad,
+                squadId: sId,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          SquadHomeScreen(squadId: sId, uid: widget.uid),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+     );
+  }
+
+  Widget _buildAllList(List<Friend> friends) {
+    // In a real app we'd interleave based on message recency, but here we stack friends then squads
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 100),
+      children: [
+         if (friends.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text('Friends', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+            ),
+            ...friends.map((f) => _FriendListTile(friend: f)),
+            const Divider(),
+         ],
+         const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text('Squads', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+         ),
+         ...widget.squadIds.map((sId) {
+             return StreamBuilder<Squad?>(
+                stream: widget.repo.watchSquad(sId),
+                builder: (ctx, snap) {
+                  if (!snap.hasData) return _buildShimmerItem();
+                  final squad = snap.data;
+                  if (squad == null) return const SizedBox.shrink();
+                  return _SquadListTile(
+                    squad: squad,
+                    squadId: sId,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SquadHomeScreen(squadId: sId, uid: widget.uid))),
+                  );
+                },
+              );
+         }),
+      ],
+    );
+  }
+
   Widget _headerIcon(IconData icon, VoidCallback onTap) {
     return IconButton(
       icon: Icon(icon, color: Colors.white.withOpacity(0.9), size: 22),
@@ -152,6 +255,18 @@ class MySquadsScreen extends StatelessWidget {
       splashRadius: 20,
       visualDensity: VisualDensity.compact,
     );
+  }
+
+  void _showSearchBottomSheet() {
+     showModalBottomSheet(
+       context: context,
+       isScrollControlled: true,
+       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+       builder: (ctx) => Padding(
+         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+         child: const _SearchUsersSheet(),
+       )
+     );
   }
 
   void _showMoreMenu(BuildContext context) {
@@ -175,16 +290,19 @@ class MySquadsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             ListTile(
+              leading: Icon(Icons.person_add, color: _primary),
+              title: const Text('Add Friends'),
+              onTap: () {
+                Navigator.pop(context);
+                _showSearchBottomSheet();
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.search, color: _primary),
               title: const Text('Browse & Join Squads'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const SquadDiscoveryScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const SquadDiscoveryScreen()));
               },
             ),
             ListTile(
@@ -192,10 +310,7 @@ class MySquadsScreen extends StatelessWidget {
               title: const Text('Create New Squad'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CreateSquadScreen()),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateSquadScreen()));
               },
             ),
             const SizedBox(height: 8),
@@ -248,6 +363,180 @@ class MySquadsScreen extends StatelessWidget {
     );
   }
 }
+
+// ── Search Users Sheet ───────────────────────────────────────────────────────
+class _SearchUsersSheet extends StatefulWidget {
+  const _SearchUsersSheet();
+
+  @override
+  State<_SearchUsersSheet> createState() => _SearchUsersSheetState();
+}
+
+class _SearchUsersSheetState extends State<_SearchUsersSheet> {
+  final _friendsRepo = FriendsRepository();
+  final _ctrl = TextEditingController();
+  List<Map<String, dynamic>> _results = [];
+  bool _searching = false;
+
+  void _search() async {
+     final q = _ctrl.text.trim();
+     if (q.isEmpty) return;
+     setState(() => _searching = true);
+     final res = await _friendsRepo.searchUsersByName(q);
+     setState(() {
+        _results = res;
+        _searching = false;
+     });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+       height: MediaQuery.of(context).size.height * 0.7,
+       padding: const EdgeInsets.all(16),
+       child: Column(
+         children: [
+           Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+           const SizedBox(height: 16),
+           const Text('Add Friends', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+           const SizedBox(height: 16),
+           
+           // Friend Requests Section
+           StreamBuilder<List<Map<String, dynamic>>>(
+             stream: _friendsRepo.watchFriendRequests(),
+             builder: (ctx, snap) {
+                final reqs = snap.data ?? [];
+                if (reqs.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                     const Text('Pending Requests', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF7B61FF))),
+                     const SizedBox(height: 8),
+                     ...reqs.map((r) => ListTile(
+                        leading: CircleAvatar(child: Text(r['displayName'][0])),
+                        title: Text(r['displayName']),
+                        trailing: ElevatedButton(
+                           onPressed: () => _friendsRepo.acceptFriendRequest(r['uid']),
+                           child: const Text('Accept')
+                        ),
+                     )),
+                     const Divider(),
+                  ],
+                );
+             },
+           ),
+
+           // Search Bar
+           TextField(
+             controller: _ctrl,
+             decoration: InputDecoration(
+               hintText: 'Search by exact name...',
+               prefixIcon: const Icon(Icons.search),
+               suffixIcon: IconButton(icon: const Icon(Icons.send), onPressed: _search),
+               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+             ),
+             onSubmitted: (_) => _search(),
+           ),
+           const SizedBox(height: 16),
+           if (_searching) const CircularProgressIndicator(),
+           Expanded(
+             child: ListView.builder(
+               itemCount: _results.length,
+               itemBuilder: (ctx, i) {
+                  final usr = _results[i];
+                  return ListTile(
+                     leading: CircleAvatar(child: Text((usr['displayName'] as String)[0])),
+                     title: Text(usr['displayName']),
+                     trailing: OutlinedButton(
+                        onPressed: () {
+                           _friendsRepo.sendFriendRequest(usr['uid']);
+                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request Sent!')));
+                        },
+                        child: const Text('Add'),
+                     ),
+                  );
+               },
+             ),
+           )
+         ],
+       ),
+    );
+  }
+}
+
+// ── Friend List Tile ─────────────────────────────────────────────────────────
+class _FriendListTile extends StatelessWidget {
+   final Friend friend;
+   
+   static const Color _primary = Color(0xFF4C4D7B);
+
+   const _FriendListTile({required this.friend});
+
+   Color _getStatusColor() {
+      switch (friend.status) {
+         case UserStatus.online: return Colors.greenAccent;
+         case UserStatus.idle: return Colors.amber;
+         case UserStatus.invisible: return Colors.grey;
+      }
+   }
+
+   @override
+   Widget build(BuildContext context) {
+      return InkWell(
+         onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => FriendChatScreen(friend: friend)));
+         },
+         child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+               children: [
+                 Stack(
+                   children: [
+                     CircleAvatar(
+                        radius: 26,
+                        backgroundColor: _primary.withOpacity(0.1),
+                        backgroundImage: friend.photoUrl != null ? NetworkImage(friend.photoUrl!) : null,
+                        child: friend.photoUrl == null ? Text(friend.displayName[0], style: const TextStyle(color: _primary, fontSize: 20)) : null,
+                     ),
+                     Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                           width: 14,
+                           height: 14,
+                           decoration: BoxDecoration(
+                              color: _getStatusColor(),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                           ),
+                        ),
+                     )
+                   ],
+                 ),
+                 const SizedBox(width: 14),
+                 Expanded(
+                   child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                         Text(
+                            friend.displayName,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Color(0xFF1A1A2E)),
+                         ),
+                         const SizedBox(height: 2),
+                         Text(
+                            'Tap to chat',
+                            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                         ),
+                      ],
+                   ),
+                 ),
+               ],
+            ),
+         ),
+      );
+   }
+}
+
 
 // ── Tab filter chips (WhatsApp style) ────────────────────────────────────────
 class _TabChip extends StatelessWidget {

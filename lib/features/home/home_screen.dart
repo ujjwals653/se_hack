@@ -9,6 +9,7 @@ import 'package:se_hack/features/expense/bloc/expense_cubit.dart';
 import 'package:se_hack/features/expense/presentation/expense_home_screen.dart';
 import 'package:se_hack/features/posts/presentation/screens/posts_screen.dart';
 import 'package:se_hack/features/group_hub/presentation/hub_screen.dart';
+import 'package:se_hack/features/profile/presentation/profile_screen.dart';
 import 'package:se_hack/features/context_switch/presentation/focus_screen.dart' as se_hack_focus;
 import 'package:se_hack/features/context_switch/domain/cognitive_debt_service.dart';
 
@@ -55,7 +56,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                     currentUserName: widget.user.displayName,
                     currentUserPhotoUrl: widget.user.photoUrl,
                   )
-                : _buildPlaceholderTab('Profile'),
+                : ProfileScreen(user: widget.user),
 
             // FLOATING FOCUS TIMER OVERLAY
             const Positioned(

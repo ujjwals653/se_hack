@@ -42,8 +42,11 @@ class _HubScreenState extends State<HubScreen> {
         }
         final data = snap.data?.data() as Map<String, dynamic>?;
         final squadIds = List<String>.from(data?['squadIds'] ?? []);
-        if (data != null && data.containsKey('squadId') && data['squadId'] != null) {
-          if (!squadIds.contains(data['squadId'])) squadIds.add(data['squadId']);
+        if (data != null &&
+            data.containsKey('squadId') &&
+            data['squadId'] != null) {
+          if (!squadIds.contains(data['squadId']))
+            squadIds.add(data['squadId']);
         }
 
         if (squadIds.isNotEmpty) {
@@ -137,7 +140,7 @@ class _NoSquadScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -161,6 +164,38 @@ class _NoSquadScreen extends StatelessWidget {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _primary,
                             foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MySquadsScreen(
+                                squadIds: const [],
+                                uid: uid,
+                                repo: repo,
+                              ),
+                            ),
+                          ),
+                          icon: const Icon(Icons.person_add),
+                          label: const Text(
+                            'Add Friend (Private Chat)',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _primary,
+                            side: BorderSide(color: _primary.withOpacity(0.4)),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -221,7 +256,7 @@ class _NoSquadScreen extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 50),
                     ],
                   ),
                 ),
@@ -234,19 +269,8 @@ class _NoSquadScreen extends StatelessWidget {
   }
 
   static const _features = [
-    [
-      '🏆',
-      'Trophy System',
-      'Earn squad trophies from squad challenges & focus sessions',
-    ],
-    [
-      '🔥',
-      'Focus Heatmap',
-      'Track squad activity with a 30-day GitHub-style heatmap',
-    ],
     ['💬', 'Squad Chat', 'Real-time chat with code snippets & whiteboard'],
     ['📅', 'Deadline Radar', 'Shared squad calendar for assignments/exams'],
-    ['🪙', 'Coin Economy', 'Earn coins by focus to spend on upgrades'],
   ];
 }
 
