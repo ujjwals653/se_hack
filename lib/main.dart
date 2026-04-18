@@ -15,13 +15,8 @@ import 'package:se_hack/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseAnonKey,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
   runApp(const MainApp());
 }
 
@@ -33,14 +28,11 @@ class MainApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         BlocProvider(
-          create: (_) => AuthBloc(authService: AuthService())..add(AuthStarted()),
+          create: (_) =>
+              AuthBloc(authService: AuthService())..add(AuthStarted()),
         ),
-        BlocProvider(
-          create: (_) => PostsBloc()..add(LoadPosts()),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => FocusService(),
-        ),
+        BlocProvider(create: (_) => PostsBloc()..add(LoadPosts())),
+        ChangeNotifierProvider(create: (_) => FocusService()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -48,9 +40,7 @@ class MainApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4B4B6C)),
           useMaterial3: true,
-          textTheme: GoogleFonts.interTextTheme(
-            const TextTheme(),
-          ),
+          textTheme: GoogleFonts.interTextTheme(const TextTheme()),
         ),
         home: const _AuthGate(),
       ),
