@@ -70,6 +70,7 @@ class _MyClassesScreenState extends State<MyClassesScreen> {
   }
 
   Color _getColorForEntry(TimetableEntry entry) {
+    if (entry.isLab) return const Color(0xFF9333EA);
     if (entry.isFree) return Colors.blue.shade200;
     return _subjectColorMap[entry.subject] ?? _subjectColors[0];
   }

@@ -6,6 +6,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:se_hack/core/constants/api_keys.dart';
+import 'package:se_hack/core/constants/prompts.dart';
 import 'package:se_hack/features/timetable/data/models/academic_calendar.dart';
 import 'package:se_hack/features/timetable/data/models/timetable.dart';
 import 'package:se_hack/features/timetable/data/models/timetable_entry.dart';
@@ -14,7 +15,7 @@ class GeminiParserService {
   late final GenerativeModel _model;
 
   GeminiParserService() {
-    _model = GenerativeModel(model: 'gemini-3.0-flash', apiKey: geminiApiKey);
+    _model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: geminiApiKey);
   }
 
   /// Main entry point: extract timetable from an image or PDF file path.
@@ -54,7 +55,7 @@ class GeminiParserService {
     final prompt = '''
 Analyze this timetable image and extract ALL class information.
 
-Return ONLY a valid JSON    object (no markdown, no code fences) with this exact structure:
+Return ONLY a valid JSON object (no markdown, no code fences) with this exact structure:
 {
   "days": {
     "Mon": [
@@ -82,7 +83,7 @@ Rules:
 ''';
 
     final content = Content.multi([
-      TextPart(prompt),
+      TextPart(kTimetableParsePrompt),
       DataPart('image/png', imageBytes),
     ]);
 
@@ -97,46 +98,99 @@ Rules:
   }
 
   /// Parse Gemini's JSON response into a Timetable object.
+  /// Supports both the new {Mon:["DAA","CCN"]} format and old full-entry format.
   Timetable _parseGeminiResponse(String responseText) {
-    // Clean up response — remove markdown code fences if present
+    // Clean markdown fences if present
     String cleaned = responseText.trim();
-    if (cleaned.startsWith('```json')) {
-      cleaned = cleaned.substring(7);
-    } else if (cleaned.startsWith('```')) {
-      cleaned = cleaned.substring(3);
-    }
-    if (cleaned.endsWith('```')) {
-      cleaned = cleaned.substring(0, cleaned.length - 3);
-    }
+    if (cleaned.startsWith('```json')) cleaned = cleaned.substring(7);
+    else if (cleaned.startsWith('```')) cleaned = cleaned.substring(3);
+    if (cleaned.endsWith('```')) cleaned = cleaned.substring(0, cleaned.length - 3);
     cleaned = cleaned.trim();
 
     final Map<String, dynamic> json;
     try {
       json = jsonDecode(cleaned) as Map<String, dynamic>;
     } catch (e) {
-      throw Exception(
-        'Failed to parse Gemini response as JSON: $e\nRaw: $cleaned',
-      );
+      throw Exception('Failed to parse Gemini response as JSON: $e\nRaw: $cleaned');
     }
 
     final now = DateTime.now();
     final days = <String, List<TimetableEntry>>{};
 
-    final daysRaw = json['days'] as Map<String, dynamic>? ?? {};
+    // Detect which format Gemini returned:
+    // New format: {"Mon": ["DAA", "CCN"]} — simple list of subject strings
+    // Old format: {"days": {"Mon": [{period, subject, startTime, ...}]}}
+    final hasDaysWrapper = json.containsKey('days');
+    final daysRaw = (hasDaysWrapper
+        ? json['days'] as Map<String, dynamic>?
+        : json) ?? {};
 
     for (final dayKey in Timetable.dayKeys) {
-      final entries = daysRaw[dayKey] as List<dynamic>? ?? [];
-      days[dayKey] = entries.map((e) {
-        final map = Map<String, dynamic>.from(e as Map);
-        return TimetableEntry.fromMap(map);
-      }).toList();
+      final rawList = daysRaw[dayKey];
+
+      if (rawList == null) {
+        days[dayKey] = [];
+        continue;
+      }
+
+      if (rawList is List && rawList.isNotEmpty && rawList.first is String) {
+        // NEW FORMAT: list of subject name strings
+        // Dedup: if Gemini repeats a subject for the same day, collapse to 1
+        final seen = <String>{};
+        final entries = <TimetableEntry>[];
+        int period = 1;
+        for (final subjectName in rawList) {
+          if (subjectName is String && subjectName.isNotEmpty && seen.add(subjectName)) {
+            entries.add(TimetableEntry(
+              period: period++,
+              subject: subjectName,
+              startTime: '',
+              endTime: '',
+              section: '',
+              isFree: false,
+            ));
+          }
+        }
+        days[dayKey] = entries;
+      } else if (rawList is List) {
+        // Full entry-object format
+        final entries = rawList.map((e) {
+          final map = Map<String, dynamic>.from(e as Map);
+          return TimetableEntry.fromMap(map);
+        }).toList();
+
+        // Safety pass 1: dedup by subject name (keep first occurrence)
+        final seen = <String>{};
+        final deduped = entries.where((e) {
+          if (e.isFree) return true;
+          return seen.add(e.subject);
+        }).toList();
+
+        // Safety pass 2: if Gemini leaked individual subjects INSIDE a lab time range,
+        // remove them. Find all Compulsory Lab blocks and their time ranges.
+        final labRanges = deduped
+            .where((e) => e.isLab)
+            .map((e) => (start: _parseMinutes(e.startTime), end: _parseMinutes(e.endTime)))
+            .toList();
+
+        final cleaned = deduped.where((e) {
+          if (e.isLab || e.isFree) return true; // always keep lab + free entries
+          if (labRanges.isEmpty) return true;
+          final eStart = _parseMinutes(e.startTime);
+          // Remove this entry if its start time falls inside any lab block
+          return !labRanges.any((r) => eStart >= r.start && eStart < r.end);
+        }).toList();
+
+        // Safety pass 3: re-number periods sequentially after removals
+        days[dayKey] = cleaned.asMap().entries.map((kv) {
+          return kv.value.copyWith(period: kv.key + 1);
+        }).toList();
+      } else {
+        days[dayKey] = [];
+      }
     }
 
-    // If no meaningful data, throw to trigger fallback
-    final totalEntries = days.values.fold<int>(
-      0,
-      (sum, list) => sum + list.length,
-    );
+    final totalEntries = days.values.fold<int>(0, (sum, list) => sum + list.length);
     if (totalEntries == 0) {
       throw Exception('No timetable data found in the image');
     }
@@ -163,31 +217,8 @@ Rules:
       imageBytes = await File(filePath).readAsBytes();
     }
 
-    final prompt = '''
-Analyze this Academic Calendar image. Extract the following information:
-1. Semester Start Date
-2. Semester End Date
-3. Explicit Holidays (like festivals, national holidays, etc.)
-4. Exam weeks / Exam durations
-
-Return ONLY a valid JSON object matching this structure:
-{
-  "startDate": "YYYY-MM-DD",
-  "endDate": "YYYY-MM-DD",
-  "holidays": [
-    {"name": "Diwali", "date": "YYYY-MM-DD"}
-  ],
-  "exams": [
-    {"name": "Mid-Terms", "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD"}
-  ]
-}
-
-- For any missing dates, do your best to estimate or derive. If totally missing, return current year-month-01.
-- DO NOT wrap in Markdown code blocks (like ```json). Just output the raw JSON text.
-''';
-
     final content = Content.multi([
-      TextPart(prompt),
+      TextPart(kAcademicCalendarParsePrompt),
       DataPart('image/png', imageBytes),
     ]);
 
@@ -215,6 +246,18 @@ Return ONLY a valid JSON object matching this structure:
         'Failed to parse Gemini calendar JSON: $e\nRaw: $cleaned',
       );
     }
+  }
+
+  /// Converts a "HH:MM" time string to total minutes since midnight.
+  /// Returns -1 if the string is empty or malformed (won't overlap with anything).
+  int _parseMinutes(String time) {
+    if (time.isEmpty) return -1;
+    final parts = time.split(':');
+    if (parts.length != 2) return -1;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return -1;
+    return h * 60 + m;
   }
 
   void dispose() {
