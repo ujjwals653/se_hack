@@ -547,12 +547,12 @@ class _FriendListTile extends StatelessWidget {
     final now = DateTime.now();
     final diff = now.difference(date);
     if (diff.inDays == 0 && now.day == date.day) {
-      return "\${date.hour > 12 ? date.hour - 12 : date.hour == 0 ? 12 : date.hour}:\${date.minute.toString().padLeft(2, '0')} \${date.hour >= 12 ? 'PM' : 'AM'}";
+      return "${date.hour > 12 ? date.hour - 12 : date.hour == 0 ? 12 : date.hour}:${date.minute.toString().padLeft(2, '0')} ${date.hour >= 12 ? 'PM' : 'AM'}";
     } else if (diff.inDays < 7 && now.weekday != date.weekday) {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       return days[date.weekday - 1];
     } else {
-      return "\${date.day}/\${date.month}";
+      return "${date.day}/${date.month}";
     }
   }
 
@@ -701,12 +701,12 @@ class _SquadListTile extends StatelessWidget {
     final now = DateTime.now();
     final diff = now.difference(date);
     if (diff.inDays == 0 && now.day == date.day) {
-      return "\${date.hour > 12 ? date.hour - 12 : date.hour == 0 ? 12 : date.hour}:\${date.minute.toString().padLeft(2, '0')} \${date.hour >= 12 ? 'PM' : 'AM'}";
+      return "${date.hour > 12 ? date.hour - 12 : date.hour == 0 ? 12 : date.hour}:${date.minute.toString().padLeft(2, '0')} ${date.hour >= 12 ? 'PM' : 'AM'}";
     } else if (diff.inDays < 7 && now.weekday != date.weekday) {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       return days[date.weekday - 1];
     } else {
-      return "\${date.day}/\${date.month}";
+      return "${date.day}/${date.month}";
     }
   }
 
