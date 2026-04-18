@@ -1,54 +1,53 @@
 /// Centralized Gemini prompts for Lumina AI parsing tasks.
 
 const String kTimetableParsePrompt = '''
-You are parsing a university timetable. Extract the weekly schedule as structured JSON.
+You are parsing a university timetable image. Extract the weekly schedule as structured JSON.
 
-CRITICAL RULES:
+CRITICAL RULES FOR LAB / BATCH SESSIONS:
 
-1. LAB SESSION DETECTION:
-   A time slot containing multiple subjects listed together
-   (e.g., "OS/B/AGN/607-B, DAA/C/SND/604, CCN/D/JS/703-B")
-   is ONE lab rotation session, NOT multiple separate lectures.
-   - These appear as 2-hour blocks with 3-5 subject+batch combinations stacked in the same cell.
-   - Each student attends only ONE of these subjects (they are divided by batch A/B/C/D).
-   - Count this entire block as: 1 occurrence of EACH subject listed (one per batch rotation).
-   - Do NOT count it as multiple subjects happening simultaneously for the same student.
+1. LAB ROTATION DETECTION:
+   A time slot showing multiple subjects with batch codes stacked together
+   (e.g., "OS/B/AGN/607-B, DAA/C/SND/604, CCN/D/JS/703-B") is ONE lab rotation block.
+   - Each student attends only ONE subject in this block (they are in batch A/B/C/D).
+   - Output each subject from that block as a SEPARATE entry with the SAME time slot.
+   - Mark each such entry as isFree: false, but use the lab block's start/end time for all.
+   - Do NOT list the same subject twice in the same day. If a subject appears in BOTH a lecture
+     AND a lab slot on the same day, output it ONCE (the lecture slot takes priority).
 
-2. LECTURE SESSION DETECTION:
-   A slot with a single subject entry like "DAA / PBB / 508" is a regular lecture.
-   - Count this as 1 lecture for ALL students.
+2. BATCH DEDUPLICATION:
+   If "DAA/A/NR/608" and "DAA/B/SND/604" appear in the same slot for different batches,
+   output DAA only once (one entry), not twice.
 
-3. BATCH LOGIC:
-   When you see entries like "DAA / A / NR / 608" and "DAA / B / SND / 604" in the same slot,
-   these are the SAME subject for different batches — count it as 1 occurrence, not 2.
+3. FREE SLOTS:
+   Mark lunch, library, breaks, self-study as isFree: true with subject "Free Period".
+   Do NOT include them in the list otherwise.
 
-4. DEDUPLICATION:
-   Each subject should appear AT MOST ONCE per day in the output.
-   If a subject appears in multiple slots on the same day (e.g., a lecture AND a lab on Monday),
-   still list it only ONCE — what matters is: does this subject meet this day? Yes/No.
+4. SUBJECT NAMES:
+   Use the short code exactly as written (e.g. "DAA", "OS", "CCN", "FOM-II", "SMCS").
 
-5. FREE/BREAK SLOTS:
-   Ignore lunch, library, breaks, and self-study slots entirely.
-   Do NOT include them as subjects.
+Return ONLY a valid JSON object (no markdown, no code fences) with this exact structure:
+{
+  "days": {
+    "Mon": [
+      {"period": 1, "subject": "CCN", "startTime": "09:00", "endTime": "10:00", "section": "", "isFree": false},
+      {"period": 2, "subject": "DAA", "startTime": "10:00", "endTime": "11:00", "section": "", "isFree": false},
+      {"period": 3, "subject": "Free Period", "startTime": "13:00", "endTime": "14:00", "section": "", "isFree": true}
+    ],
+    "Tue": [...],
+    "Wed": [...],
+    "Thu": [...],
+    "Fri": [...],
+    "Sat": [...]
+  }
+}
 
-6. SUBJECT NAMES:
-   Use short codes as they appear in the timetable (e.g., "DAA", "OS", "CCN", "FOM-II", "SMCS").
-   Do not expand abbreviations.
-
-7. OUTPUT FORMAT:
-   Return ONLY valid JSON, no markdown, no explanation:
-   {
-     "Mon": ["DAA", "CCN", "OS"],
-     "Tue": ["OS", "DAA", "PCS"],
-     "Wed": ["CCN", "PCS", "FOM-II"],
-     "Thu": ["OS", "DAA", "CCN", "PCS", "SMCS"],
-     "Fri": ["OS", "CCN", "FOM-II", "SMCS"],
-     "Sat": []
-   }
-
-Use exactly these day keys: Mon, Tue, Wed, Thu, Fri, Sat.
-If a day has no classes, return an empty array [].
-Return ONLY the JSON object, nothing else.
+Additional rules:
+- Use 24-hour format for times (e.g. "09:00", "14:30").
+- Period numbers start at 1 and increment through the day.
+- If a day has no classes, use an empty array [].
+- If section/room info is visible, include it in "section".
+- Extract ALL days visible in the timetable.
+- Return ONLY the JSON object, nothing else.
 ''';
 
 const String kAcademicCalendarParsePrompt = '''
