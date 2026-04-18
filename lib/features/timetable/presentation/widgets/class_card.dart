@@ -17,10 +17,70 @@ class ClassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (entry.isFree) {
-      return _buildFreeCard(context);
-    }
+    if (entry.isLab) return _buildLabCard(context);
+    if (entry.isFree) return _buildFreeCard(context);
     return _buildClassCard(context);
+  }
+
+  Widget _buildLabCard(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3E8FF),
+          borderRadius: BorderRadius.circular(16),
+          border: const Border(
+            left: BorderSide(color: Color(0xFF9333EA), width: 4),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE9D4FF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.science_outlined,
+                color: Color(0xFF7E22CE),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Compulsory Lab',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF581C87),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Lab rotation — not counted in lectures',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.purple.shade300,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.rotate_right_outlined, size: 16, color: Color(0xFF9333EA)),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildClassCard(BuildContext context) {
@@ -145,6 +205,7 @@ class ClassCard extends StatelessWidget {
 
   IconData _getSubjectIcon(String subject) {
     final lower = subject.toLowerCase();
+    if (lower.contains('lab')) return Icons.science_outlined;
     if (lower.contains('math')) return Icons.calculate_outlined;
     if (lower.contains('english') || lower.contains('lang')) return Icons.menu_book_outlined;
     if (lower.contains('science')) return Icons.science_outlined;

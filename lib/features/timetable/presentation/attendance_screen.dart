@@ -9,10 +9,28 @@ import 'package:se_hack/features/timetable/presentation/screens/bunk_analytics_w
 class AttendanceScreen extends StatelessWidget {
   const AttendanceScreen({Key? key}) : super(key: key);
 
+  /// Returns true only for real lecture subjects that should appear in attendance.
+  /// Filters out: Compulsory Lab, Free Period, old semicolon-joined names (bad OCR).
+  static bool _isValidLecture(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return false;
+    if (trimmed.toLowerCase() == 'compulsory lab') return false;
+    if (trimmed.toLowerCase() == 'free period') return false;
+    if (trimmed.contains(';')) return false; // old combined-subject format
+    if (trimmed.contains('/')) return false; // raw OCR batch codes like "OS/B/AGN"
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final attService = context.watch<AttendanceService>();
-    final statsList = attService.stats.values.toList();
+    final allStats = attService.stats.values.toList();
+
+    // Only show valid lecture subjects
+    final statsList = allStats.where((s) => _isValidLecture(s.subjectName)).toList();
+
+    // Check if there is stale combined-name data needing a re-upload
+    final hasStaleData = allStats.any((s) => !_isValidLecture(s.subjectName));
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
@@ -39,16 +57,40 @@ class AttendanceScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: statsList.isEmpty
-          ? const Center(child: Text("No attendance data found. Please set up your Timetable."))
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: statsList.length,
-              itemBuilder: (context, index) {
-                final stat = statsList[index];
-                return _SubjectCard(attService: attService, stat: stat);
-              },
+      body: Column(
+        children: [
+          if (hasStaleData)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              color: Colors.orange.shade50,
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Old timetable data detected. Re-upload your timetable to fix subject names.',
+                      style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                    ),
+                  ),
+                ],
+              ),
             ),
+          Expanded(
+            child: statsList.isEmpty
+                ? const Center(child: Text("No attendance data found. Please set up your Timetable."))
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: statsList.length,
+                    itemBuilder: (context, index) {
+                      final stat = statsList[index];
+                      return _SubjectCard(attService: attService, stat: stat);
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

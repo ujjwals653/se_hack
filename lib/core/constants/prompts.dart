@@ -3,52 +3,105 @@
 const String kTimetableParsePrompt = '''
 You are parsing a university timetable image. Extract the weekly schedule as structured JSON.
 
-CRITICAL RULES FOR LAB / BATCH SESSIONS:
+═══════════════════════════════════════════════════
+SECTION A — HOW TO IDENTIFY A LAB ROTATION BLOCK
+═══════════════════════════════════════════════════
 
-1. LAB ROTATION DETECTION:
-   A time slot showing multiple subjects with batch codes stacked together
-   (e.g., "OS/B/AGN/607-B, DAA/C/SND/604, CCN/D/JS/703-B") is ONE lab rotation block.
-   - Each student attends only ONE subject in this block (they are in batch A/B/C/D).
-   - Output each subject from that block as a SEPARATE entry with the SAME time slot.
-   - Mark each such entry as isFree: false, but use the lab block's start/end time for all.
-   - Do NOT list the same subject twice in the same day. If a subject appears in BOTH a lecture
-     AND a lab slot on the same day, output it ONCE (the lecture slot takes priority).
+A lab rotation block looks like this in a single cell (stacked vertically):
+  OS / B / AGN / 607-B
+  DAA / C / SND / 604
+  CCN / D / JS / 703-B
+  PCS / A / KT / 604
 
-2. BATCH DEDUPLICATION:
-   If "DAA/A/NR/608" and "DAA/B/SND/604" appear in the same slot for different batches,
-   output DAA only once (one entry), not twice.
+Key markers:
+  - 3 or more subject codes with batch letters (A/B/C/D) and room numbers in the SAME cell
+  - The cell spans 2 consecutive hours (e.g., 11:00–13:00)
 
-3. FREE SLOTS:
-   Mark lunch, library, breaks, self-study as isFree: true with subject "Free Period".
-   Do NOT include them in the list otherwise.
+═══════════════════════════════════════════════════
+SECTION B — WHAT TO DO WITH A LAB ROTATION BLOCK
+═══════════════════════════════════════════════════
 
-4. SUBJECT NAMES:
-   Use the short code exactly as written (e.g. "DAA", "OS", "CCN", "FOM-II", "SMCS").
+RULE: Replace the ENTIRE lab rotation block with ONE single entry:
+  {
+    "period": <next period number>,
+    "subject": "Compulsory Lab",
+    "startTime": "<block start, e.g. 11:00>",
+    "endTime": "<block end — 2 hours later, e.g. 13:00>",
+    "section": "",
+    "isFree": false,
+    "isLab": true
+  }
 
-Return ONLY a valid JSON object (no markdown, no code fences) with this exact structure:
+CRITICAL — DO NOT:
+  ✗ Output OS, DAA, CCN, PCS as separate entries for this block
+  ✗ Output the lab subjects again elsewhere on the SAME day
+  ✗ Shrink the lab entry to 1 hour — it is always a 2-HOUR block
+  ✗ Add any individual subject from this cell as a standalone lecture on this day
+
+═══════════════════════════════════════════════════
+SECTION C — REGULAR LECTURES
+═══════════════════════════════════════════════════
+
+A regular lecture looks like: "DAA / PBB / 508"  or  "CCN / SR / 603"
+  → A single subject, faculty, and room.
+  → Output normally with "isLab": false.
+
+If two entries in the SAME slot differ only by batch (e.g., "DAA/A/NR" and "DAA/B/SND"):
+  → They are the same lecture split by batch. Output DAA once as a regular lecture.
+
+═══════════════════════════════════════════════════
+SECTION D — WORKED EXAMPLE (Wednesday)
+═══════════════════════════════════════════════════
+
+Suppose Wednesday shows:
+  09:00-10:00 →  CCN / SR / 603          (regular lecture)
+  10:00-11:00 →  DAA / PBB / 508         (regular lecture)
+  11:00-13:00 →  OS/B/AGN/607, DAA/C/SND/604, CCN/D/JS/703, PCS/A/KT/604   (lab rotation)
+  13:00-14:00 →  Lunch
+
+CORRECT output for Wednesday:
+  [
+    {"period":1,"subject":"CCN","startTime":"09:00","endTime":"10:00","section":"","isFree":false,"isLab":false},
+    {"period":2,"subject":"DAA","startTime":"10:00","endTime":"11:00","section":"","isFree":false,"isLab":false},
+    {"period":3,"subject":"Compulsory Lab","startTime":"11:00","endTime":"13:00","section":"","isFree":false,"isLab":true},
+    {"period":4,"subject":"Free Period","startTime":"13:00","endTime":"14:00","section":"","isFree":true,"isLab":false}
+  ]
+
+WRONG — do NOT output like this:
+  [CCN, DAA, OS, DAA(lab), CCN(lab), PCS] ← inflated, lab subjects leaked as lectures
+
+═══════════════════════════════════════════════════
+SECTION E — FREE / BREAK PERIODS
+═══════════════════════════════════════════════════
+
+Lunch, library, self-study, breaks:
+  → "subject": "Free Period", "isFree": true, "isLab": false
+
+═══════════════════════════════════════════════════
+SECTION F — OUTPUT FORMAT
+═══════════════════════════════════════════════════
+
+Return ONLY a valid JSON object — no markdown, no code fences, no explanation.
+
 {
   "days": {
-    "Mon": [
-      {"period": 1, "subject": "CCN", "startTime": "09:00", "endTime": "10:00", "section": "", "isFree": false},
-      {"period": 2, "subject": "DAA", "startTime": "10:00", "endTime": "11:00", "section": "", "isFree": false},
-      {"period": 3, "subject": "Free Period", "startTime": "13:00", "endTime": "14:00", "section": "", "isFree": true}
-    ],
-    "Tue": [...],
-    "Wed": [...],
-    "Thu": [...],
-    "Fri": [...],
-    "Sat": [...]
+    "Mon": [ ... ],
+    "Tue": [ ... ],
+    "Wed": [ ... ],
+    "Thu": [ ... ],
+    "Fri": [ ... ],
+    "Sat": [ ... ]
   }
 }
 
-Additional rules:
-- Use 24-hour format for times (e.g. "09:00", "14:30").
-- Period numbers start at 1 and increment through the day.
-- If a day has no classes, use an empty array [].
-- If section/room info is visible, include it in "section".
-- Extract ALL days visible in the timetable.
-- Return ONLY the JSON object, nothing else.
+Each entry: {"period": int, "subject": string, "startTime": "HH:MM", "endTime": "HH:MM", "section": string, "isFree": bool, "isLab": bool}
+
+- Times in 24-hour format
+- Period numbers start at 1 and increment per day
+- Empty days → []
+- Return ONLY the JSON object, nothing else
 ''';
+
 
 const String kAcademicCalendarParsePrompt = '''
 Analyze this Academic Calendar image. Extract the following information:

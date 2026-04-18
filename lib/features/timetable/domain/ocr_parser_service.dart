@@ -123,17 +123,37 @@ class GeminiParserService {
         }
         days[dayKey] = entries;
       } else if (rawList is List) {
-        // OLD FORMAT: list of full entry maps
+        // Full entry-object format
         final entries = rawList.map((e) {
           final map = Map<String, dynamic>.from(e as Map);
           return TimetableEntry.fromMap(map);
         }).toList();
 
-        // Dedup guard: collapse duplicate subjects on the same day
+        // Safety pass 1: dedup by subject name (keep first occurrence)
         final seen = <String>{};
-        days[dayKey] = entries.where((e) {
-          if (e.isFree) return true; // keep free periods as-is
+        final deduped = entries.where((e) {
+          if (e.isFree) return true;
           return seen.add(e.subject);
+        }).toList();
+
+        // Safety pass 2: if Gemini leaked individual subjects INSIDE a lab time range,
+        // remove them. Find all Compulsory Lab blocks and their time ranges.
+        final labRanges = deduped
+            .where((e) => e.isLab)
+            .map((e) => (start: _parseMinutes(e.startTime), end: _parseMinutes(e.endTime)))
+            .toList();
+
+        final cleaned = deduped.where((e) {
+          if (e.isLab || e.isFree) return true; // always keep lab + free entries
+          if (labRanges.isEmpty) return true;
+          final eStart = _parseMinutes(e.startTime);
+          // Remove this entry if its start time falls inside any lab block
+          return !labRanges.any((r) => eStart >= r.start && eStart < r.end);
+        }).toList();
+
+        // Safety pass 3: re-number periods sequentially after removals
+        days[dayKey] = cleaned.asMap().entries.map((kv) {
+          return kv.value.copyWith(period: kv.key + 1);
         }).toList();
       } else {
         days[dayKey] = [];
@@ -196,6 +216,18 @@ class GeminiParserService {
         'Failed to parse Gemini calendar JSON: $e\nRaw: $cleaned',
       );
     }
+  }
+
+  /// Converts a "HH:MM" time string to total minutes since midnight.
+  /// Returns -1 if the string is empty or malformed (won't overlap with anything).
+  int _parseMinutes(String time) {
+    if (time.isEmpty) return -1;
+    final parts = time.split(':');
+    if (parts.length != 2) return -1;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return -1;
+    return h * 60 + m;
   }
 
   void dispose() {

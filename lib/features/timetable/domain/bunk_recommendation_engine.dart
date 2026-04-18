@@ -16,7 +16,7 @@ class BunkRecommendationEngine {
       final dayKey = workingDayKeys[i];
       final entries = timetable.days[dayKey] ?? [];
       final subjects = entries
-          .where((e) => !e.isFree && e.subject.isNotEmpty)
+          .where((e) => !e.isFree && !e.isLab && e.subject.isNotEmpty)
           .map((e) => e.subject)
           .toList();
 
