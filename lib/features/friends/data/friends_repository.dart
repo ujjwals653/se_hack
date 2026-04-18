@@ -135,6 +135,39 @@ class FriendsRepository {
     await batch.commit();
   }
 
+  Stream<bool> watchHasPendingRequest(String targetUid) {
+    return _db
+        .collection('users')
+        .doc(_uid)
+        .collection('friendRequests')
+        .doc(targetUid)
+        .snapshots()
+        .map((doc) => doc.exists);
+  }
+
+  Stream<bool> isFriend(String targetUid) {
+    return _db
+        .collection('users')
+        .doc(_uid)
+        .collection('friends')
+        .doc(targetUid)
+        .snapshots()
+        .map((doc) => doc.exists);
+  }
+
+  Future<void> unfriend(String targetUid) async {
+    final batch = _db.batch();
+    batch.delete(_db.collection('users').doc(_uid).collection('friends').doc(targetUid));
+    batch.update(_db.collection('users').doc(_uid), {
+      'friendsCount': FieldValue.increment(-1)
+    });
+    batch.delete(_db.collection('users').doc(targetUid).collection('friends').doc(_uid));
+    batch.update(_db.collection('users').doc(targetUid), {
+      'friendsCount': FieldValue.increment(-1)
+    });
+    await batch.commit();
+  }
+
   // --- SQUAD INVITE STUFF ---
 
   /// Sends a squad invite notification to [targetUid].

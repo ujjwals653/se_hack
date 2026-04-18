@@ -52,36 +52,6 @@ class GeminiParserService {
 
   /// Send the image to Gemini and get structured timetable JSON back.
   Future<Timetable> _analyzeWithGemini(Uint8List imageBytes) async {
-    final prompt = '''
-Analyze this timetable image and extract ALL class information.
-
-Return ONLY a valid JSON object (no markdown, no code fences) with this exact structure:
-{
-  "days": {
-    "Mon": [
-      {"period": 1, "subject": "English", "startTime": "09:00", "endTime": "10:00", "section": "", "isFree": false},
-      {"period": 2, "subject": "Free Period", "startTime": "10:00", "endTime": "11:00", "section": "", "isFree": true}
-    ],
-    "Tue": [...],
-    "Wed": [...],
-    "Thu": [...],
-    "Fri": [...],
-    "Sat": [...]
-  }
-}
-
-Rules:
-- Use 24-hour format for times (e.g., "09:00", "14:00")
-- Set "isFree": true for free periods, breaks, lunch, library, self-study
-- Set "isFree": false for actual classes
-- For free periods, set subject to "Free Period"
-- Period numbers should start at 1 and increment
-- If a day has no classes, use an empty array []
-- If section info is visible (like "7A", "Section B"), include it
-- Extract ALL days visible in the timetable
-- Return ONLY the JSON, nothing else
-''';
-
     final content = Content.multi([
       TextPart(kTimetableParsePrompt),
       DataPart('image/png', imageBytes),
@@ -102,16 +72,21 @@ Rules:
   Timetable _parseGeminiResponse(String responseText) {
     // Clean markdown fences if present
     String cleaned = responseText.trim();
-    if (cleaned.startsWith('```json')) cleaned = cleaned.substring(7);
-    else if (cleaned.startsWith('```')) cleaned = cleaned.substring(3);
-    if (cleaned.endsWith('```')) cleaned = cleaned.substring(0, cleaned.length - 3);
+    if (cleaned.startsWith('```json'))
+      cleaned = cleaned.substring(7);
+    else if (cleaned.startsWith('```'))
+      cleaned = cleaned.substring(3);
+    if (cleaned.endsWith('```'))
+      cleaned = cleaned.substring(0, cleaned.length - 3);
     cleaned = cleaned.trim();
 
     final Map<String, dynamic> json;
     try {
       json = jsonDecode(cleaned) as Map<String, dynamic>;
     } catch (e) {
-      throw Exception('Failed to parse Gemini response as JSON: $e\nRaw: $cleaned');
+      throw Exception(
+        'Failed to parse Gemini response as JSON: $e\nRaw: $cleaned',
+      );
     }
 
     final now = DateTime.now();
@@ -121,9 +96,8 @@ Rules:
     // New format: {"Mon": ["DAA", "CCN"]} — simple list of subject strings
     // Old format: {"days": {"Mon": [{period, subject, startTime, ...}]}}
     final hasDaysWrapper = json.containsKey('days');
-    final daysRaw = (hasDaysWrapper
-        ? json['days'] as Map<String, dynamic>?
-        : json) ?? {};
+    final daysRaw =
+        (hasDaysWrapper ? json['days'] as Map<String, dynamic>? : json) ?? {};
 
     for (final dayKey in Timetable.dayKeys) {
       final rawList = daysRaw[dayKey];
@@ -140,15 +114,19 @@ Rules:
         final entries = <TimetableEntry>[];
         int period = 1;
         for (final subjectName in rawList) {
-          if (subjectName is String && subjectName.isNotEmpty && seen.add(subjectName)) {
-            entries.add(TimetableEntry(
-              period: period++,
-              subject: subjectName,
-              startTime: '',
-              endTime: '',
-              section: '',
-              isFree: false,
-            ));
+          if (subjectName is String &&
+              subjectName.isNotEmpty &&
+              seen.add(subjectName)) {
+            entries.add(
+              TimetableEntry(
+                period: period++,
+                subject: subjectName,
+                startTime: '',
+                endTime: '',
+                section: '',
+                isFree: false,
+              ),
+            );
           }
         }
         days[dayKey] = entries;
@@ -170,11 +148,17 @@ Rules:
         // remove them. Find all Compulsory Lab blocks and their time ranges.
         final labRanges = deduped
             .where((e) => e.isLab)
-            .map((e) => (start: _parseMinutes(e.startTime), end: _parseMinutes(e.endTime)))
+            .map(
+              (e) => (
+                start: _parseMinutes(e.startTime),
+                end: _parseMinutes(e.endTime),
+              ),
+            )
             .toList();
 
         final cleaned = deduped.where((e) {
-          if (e.isLab || e.isFree) return true; // always keep lab + free entries
+          if (e.isLab || e.isFree)
+            return true; // always keep lab + free entries
           if (labRanges.isEmpty) return true;
           final eStart = _parseMinutes(e.startTime);
           // Remove this entry if its start time falls inside any lab block
@@ -190,7 +174,10 @@ Rules:
       }
     }
 
-    final totalEntries = days.values.fold<int>(0, (sum, list) => sum + list.length);
+    final totalEntries = days.values.fold<int>(
+      0,
+      (sum, list) => sum + list.length,
+    );
     if (totalEntries == 0) {
       throw Exception('No timetable data found in the image');
     }
