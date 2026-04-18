@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:se_hack/core/models/app_user.dart';
+import 'package:se_hack/features/auth/auth_bloc.dart';
 
 class MainHomeScreen extends StatefulWidget {
-  const MainHomeScreen({super.key});
+  final AppUser user;
+  const MainHomeScreen({super.key, required this.user});
 
   @override
   State<MainHomeScreen> createState() => _MainHomeScreenState();
@@ -28,29 +32,48 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   child: Row(
                     children: [
-                      const CircleAvatar(
-                        radius: 26,
-                        backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=11'), 
-                        // Using a placeholder image for avatar. 
+                      GestureDetector(
+                        onLongPress: () {
+                          // Long-press avatar to sign out
+                          _showSignOutDialog(context);
+                        },
+                        child: CircleAvatar(
+                          radius: 26,
+                          backgroundColor: Colors.white24,
+                          backgroundImage: widget.user.photoUrl != null
+                              ? NetworkImage(widget.user.photoUrl!)
+                              : null,
+                          child: widget.user.photoUrl == null
+                              ? Text(
+                                  widget.user.firstName[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                              : null,
+                        ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Jimmy',
-                              style: TextStyle(
+                              widget.user.firstName,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
-                              'E85, 2024-25',
-                              style: TextStyle(
+                              widget.user.email,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
                                 color: Colors.white70,
-                                fontSize: 14,
+                                fontSize: 13,
                               ),
                             ),
                           ],
@@ -271,6 +294,37 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showSignOutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Sign Out'),
+        content: Text('Sign out as ${widget.user.displayName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4C4D7B),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<AuthBloc>().add(AuthSignOutRequested());
+            },
+            child: const Text('Sign Out'),
+          ),
+        ],
       ),
     );
   }

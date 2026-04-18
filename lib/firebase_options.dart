@@ -60,4 +60,5 @@ class DefaultFirebaseOptions {
     databaseURL: 'https://lumina-52eeb-default-rtdb.firebaseio.com',
     storageBucket: 'lumina-52eeb.firebasestorage.app',
   );
+
 }

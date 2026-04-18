@@ -13,7 +13,20 @@
           "package_name": "com.example.se_hack"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "912289774462-9t9506ol8pucbsgf5timii1kjm7tu6iu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.se_hack",
+            "certificate_hash": "f198a04d67dc50e933157109799e3012fd7991e8"
+          }
+        },
+        {
+          "client_id": "912289774462-pa5v1024t1fo198mfhmvj4pfe1ocd1pa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAWDZNohGL4Fqr4z2KDNYP35tiyeAggTb0"
@@ -21,7 +34,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "912289774462-pa5v1024t1fo198mfhmvj4pfe1ocd1pa.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "912289774462-ba2cca09pkn1qb5skvikc6fehg8m6umv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.seHack"
+              }
+            }
+          ]
         }
       }
     },
@@ -32,7 +57,12 @@
           "package_name": "com.scoders.lumina"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "912289774462-pa5v1024t1fo198mfhmvj4pfe1ocd1pa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAWDZNohGL4Fqr4z2KDNYP35tiyeAggTb0"
@@ -40,7 +70,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "912289774462-pa5v1024t1fo198mfhmvj4pfe1ocd1pa.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "912289774462-ba2cca09pkn1qb5skvikc6fehg8m6umv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.seHack"
+              }
+            }
+          ]
         }
       }
     }
