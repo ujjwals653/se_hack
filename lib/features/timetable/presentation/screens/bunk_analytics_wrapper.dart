@@ -4,6 +4,7 @@ import 'package:se_hack/features/timetable/data/bunk_analytics_repository.dart';
 import 'package:se_hack/features/timetable/data/timetable_repository.dart';
 import 'package:se_hack/features/timetable/domain/ocr_parser_service.dart';
 import 'package:se_hack/features/timetable/presentation/bunk_analytics_bloc.dart';
+import 'package:se_hack/features/attendance/domain/attendance_service.dart';
 import 'package:se_hack/features/timetable/presentation/screens/bunk_analytics_dashboard.dart';
 import 'package:se_hack/features/timetable/presentation/screens/bunk_analytics_upload_screen.dart';
 
@@ -19,6 +20,7 @@ class BunkAnalyticsWrapper extends StatelessWidget {
         repository: BunkAnalyticsRepository(),
         timetableRepository: TimetableRepository(),
         parserService: GeminiParserService(),
+        attendanceService: context.read<AttendanceService>(),
       )..add(LoadBunkPlan(userId)),
       child: _BunkWrapperBody(userId: userId),
     );
