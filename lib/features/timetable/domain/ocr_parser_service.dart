@@ -52,6 +52,36 @@ class GeminiParserService {
 
   /// Send the image to Gemini and get structured timetable JSON back.
   Future<Timetable> _analyzeWithGemini(Uint8List imageBytes) async {
+    final prompt = '''
+Analyze this timetable image and extract ALL class information.
+
+Return ONLY a valid JSON object (no markdown, no code fences) with this exact structure:
+{
+  "days": {
+    "Mon": [
+      {"period": 1, "subject": "English", "startTime": "09:00", "endTime": "10:00", "section": "", "isFree": false},
+      {"period": 2, "subject": "Free Period", "startTime": "10:00", "endTime": "11:00", "section": "", "isFree": true}
+    ],
+    "Tue": [...],
+    "Wed": [...],
+    "Thu": [...],
+    "Fri": [...],
+    "Sat": [...]
+  }
+}
+
+Rules:
+- Use 24-hour format for times (e.g., "09:00", "14:00")
+- Set "isFree": true for free periods, breaks, lunch, library, self-study
+- Set "isFree": false for actual classes
+- For free periods, set subject to "Free Period"
+- Period numbers should start at 1 and increment
+- If a day has no classes, use an empty array []
+- If section info is visible (like "7A", "Section B"), include it
+- Extract ALL days visible in the timetable
+- Return ONLY the JSON, nothing else
+''';
+
     final content = Content.multi([
       TextPart(kTimetableParsePrompt),
       DataPart('image/png', imageBytes),
@@ -180,7 +210,7 @@ class GeminiParserService {
   }) async {
     final Uint8List imageBytes;
     if (isPdf) {
-      // Just render the first page or iterate. For simplicity in academic calendar, 
+      // Just render the first page or iterate. For simplicity in academic calendar,
       // often the calendar fits on page 1.
       imageBytes = await _renderPdfToImage(filePath);
     } else {
