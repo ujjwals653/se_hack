@@ -21,8 +21,6 @@ class SquadKanbanScreen extends StatefulWidget {
 class _SquadKanbanScreenState extends State<SquadKanbanScreen> {
   static const Color _primary = Color(0xFF4C4D7B);
 
-  bool _myTasksOnly = false;
-
   final _columns = KanbanColumn.values;
 
   final _columnMeta = {
@@ -52,32 +50,6 @@ class _SquadKanbanScreenState extends State<SquadKanbanScreen> {
                   ),
                 ),
               ),
-              // My tasks toggle
-              GestureDetector(
-                onTap: () => setState(() => _myTasksOnly = !_myTasksOnly),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _myTasksOnly
-                        ? _primary
-                        : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    _myTasksOnly ? '👤 My Tasks' : '👥 All Tasks',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: _myTasksOnly
-                          ? Colors.white
-                          : Colors.grey.shade600,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
               // Add task
               GestureDetector(
                 onTap: () => _showAddTaskSheet(context),
@@ -88,8 +60,7 @@ class _SquadKanbanScreenState extends State<SquadKanbanScreen> {
                     color: _primary,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.add,
-                      color: Colors.white, size: 20),
+                  child: const Icon(Icons.add, color: Colors.white, size: 20),
                 ),
               ),
             ],
@@ -105,27 +76,23 @@ class _SquadKanbanScreenState extends State<SquadKanbanScreen> {
             builder: (ctx, snap) {
               if (!snap.hasData) {
                 return const Center(
-                    child: CircularProgressIndicator(
-                        color: Color(0xFF7B61FF)));
+                  child: CircularProgressIndicator(color: Color(0xFF7B61FF)),
+                );
               }
               var allTasks = snap.data!;
-              if (_myTasksOnly) {
-                allTasks = allTasks
-                    .where((t) => t.assignees.contains(widget.uid))
-                    .toList();
-              }
 
               return ListView.separated(
                 scrollDirection: Axis.vertical,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 8),
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 itemCount: _columns.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 16),
                 itemBuilder: (_, colIdx) {
                   final col = _columns[colIdx];
                   final meta = _columnMeta[col]!;
-                  final tasks =
-                      allTasks.where((t) => t.column == col).toList();
+                  final tasks = allTasks.where((t) => t.column == col).toList();
 
                   return _KanbanColumn(
                     meta: meta,
@@ -133,12 +100,17 @@ class _SquadKanbanScreenState extends State<SquadKanbanScreen> {
                     col: col,
                     uid: widget.uid,
                     onMove: (task, newCol) async {
-                      await widget.repo
-                          .moveKanbanTask(widget.squadId, task.id, newCol);
+                      await widget.repo.moveKanbanTask(
+                        widget.squadId,
+                        task.id,
+                        newCol,
+                      );
                     },
                     onDelete: (task) async {
                       await widget.repo.deleteKanbanTask(
-                          widget.squadId, task.id);
+                        widget.squadId,
+                        task.id,
+                      );
                     },
                   );
                 },
@@ -213,11 +185,10 @@ class _KanbanColumnState extends State<_KanbanColumn> {
           GestureDetector(
             onTap: () => setState(() => _expanded = !_expanded),
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: widget.meta.color.withOpacity(0.12),
-                borderRadius: _expanded 
+                borderRadius: _expanded
                     ? const BorderRadius.vertical(top: Radius.circular(16))
                     : BorderRadius.circular(16),
               ),
@@ -253,7 +224,9 @@ class _KanbanColumnState extends State<_KanbanColumn> {
                   ),
                   const SizedBox(width: 8),
                   Icon(
-                    _expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    _expanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     color: widget.meta.color,
                   ),
                 ],
@@ -293,7 +266,6 @@ class _KanbanColumnState extends State<_KanbanColumn> {
     );
   }
 }
-
 
 // ─── Kanban Card ─────────────────────────────────────────────────────────────
 class _KanbanCard extends StatelessWidget {
@@ -336,7 +308,8 @@ class _KanbanCard extends StatelessWidget {
           border: isAssigned
               ? Border.all(
                   color: const Color(0xFF4C4D7B).withOpacity(0.4),
-                  width: 1.5)
+                  width: 1.5,
+                )
               : Border.all(color: Colors.transparent),
           boxShadow: [
             BoxShadow(
@@ -354,10 +327,11 @@ class _KanbanCard extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 2),
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: _priorityColors[task.priority]!
-                        .withOpacity(0.12),
+                    color: _priorityColors[task.priority]!.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -371,8 +345,7 @@ class _KanbanCard extends StatelessWidget {
                 ),
                 if (isAssigned) ...[
                   const SizedBox(width: 8),
-                  const Text('👤',
-                      style: TextStyle(fontSize: 10)),
+                  const Text('👤', style: TextStyle(fontSize: 10)),
                 ],
                 const Spacer(),
                 PopupMenuButton<KanbanColumn>(
@@ -395,8 +368,12 @@ class _KanbanCard extends StatelessWidget {
                             Text(meta[c] ?? c.name),
                             if (c == task.column) ...[
                               const Spacer(),
-                              const Icon(Icons.check, size: 16, color: Colors.green),
-                            ]
+                              const Icon(
+                                Icons.check,
+                                size: 16,
+                                color: Colors.green,
+                              ),
+                            ],
                           ],
                         ),
                       );
@@ -419,10 +396,7 @@ class _KanbanCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 task.description,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -431,8 +405,11 @@ class _KanbanCard extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Icon(Icons.access_time,
-                      size: 11, color: Colors.grey.shade500),
+                  Icon(
+                    Icons.access_time,
+                    size: 11,
+                    color: Colors.grey.shade500,
+                  ),
                   const SizedBox(width: 3),
                   Text(
                     'Due ${_formatDate(task.dueDate!)}',
@@ -481,10 +458,7 @@ class _KanbanCard extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Move to column:',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ),
             ),
@@ -506,10 +480,11 @@ class _KanbanCard extends StatelessWidget {
             }),
             const Divider(),
             ListTile(
-              leading:
-                  const Icon(Icons.delete, color: Colors.redAccent),
-              title: const Text('Delete Task',
-                  style: TextStyle(color: Colors.redAccent)),
+              leading: const Icon(Icons.delete, color: Colors.redAccent),
+              title: const Text(
+                'Delete Task',
+                style: TextStyle(color: Colors.redAccent),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 onDelete(task);
@@ -532,10 +507,11 @@ class _AddTaskSheet extends StatefulWidget {
   final String squadId;
   final String uid;
   final SquadRepository repo;
-  const _AddTaskSheet(
-      {required this.squadId,
-      required this.uid,
-      required this.repo});
+  const _AddTaskSheet({
+    required this.squadId,
+    required this.uid,
+    required this.repo,
+  });
 
   @override
   State<_AddTaskSheet> createState() => _AddTaskSheetState();
@@ -589,8 +565,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
             children: [
               const Text(
                 'Add Task',
-                style:
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               const SizedBox(height: 14),
               TextField(
@@ -614,13 +589,14 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                       initialValue: _priority,
                       decoration: _dec('Priority'),
                       items: TaskPriority.values
-                          .map((p) => DropdownMenuItem(
-                                value: p,
-                                child: Text(p.name.toUpperCase()),
-                              ))
+                          .map(
+                            (p) => DropdownMenuItem(
+                              value: p,
+                              child: Text(p.name.toUpperCase()),
+                            ),
+                          )
                           .toList(),
-                      onChanged: (v) =>
-                          setState(() => _priority = v!),
+                      onChanged: (v) => setState(() => _priority = v!),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -629,10 +605,10 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                       initialValue: _col,
                       decoration: _dec('Column'),
                       items: KanbanColumn.values
-                          .map((c) => DropdownMenuItem(
-                                value: c,
-                                child: Text(c.name),
-                              ))
+                          .map(
+                            (c) =>
+                                DropdownMenuItem(value: c, child: Text(c.name)),
+                          )
                           .toList(),
                       onChanged: (v) => setState(() => _col = v!),
                     ),
@@ -643,10 +619,11 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
               const SizedBox(height: 10),
               CheckboxListTile(
                 value: _assignedToMe,
-                onChanged: (v) =>
-                    setState(() => _assignedToMe = v!),
-                title: const Text('Assign to me',
-                    style: TextStyle(fontSize: 13)),
+                onChanged: (v) => setState(() => _assignedToMe = v!),
+                title: const Text(
+                  'Assign to me',
+                  style: TextStyle(fontSize: 13),
+                ),
                 activeColor: _primary,
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
@@ -669,11 +646,14 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2),
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         )
-                      : const Text('Add Task',
-                          style:
-                              TextStyle(fontWeight: FontWeight.bold)),
+                      : const Text(
+                          'Add Task',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                 ),
               ),
             ],
@@ -684,26 +664,23 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
   }
 
   InputDecoration _dec(String hint) => InputDecoration(
-        hintText: hint,
-        hintStyle:
-            TextStyle(color: Colors.grey.shade400, fontSize: 13),
-        filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: Color(0xFF4C4D7B), width: 2),
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        isDense: true,
-      );
+    hintText: hint,
+    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+    filled: true,
+    fillColor: Colors.grey.shade50,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey.shade200),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.grey.shade200),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Color(0xFF4C4D7B), width: 2),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    isDense: true,
+  );
 }
