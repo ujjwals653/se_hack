@@ -25,6 +25,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     const Color headerColor = Color(0xFF4C4D7B);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: headerColor,
       body: SafeArea(
         bottom: false,

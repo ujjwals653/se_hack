@@ -68,9 +68,9 @@ class _SquadChatScreenState extends State<SquadChatScreen>
       _scrollToBottom();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
     if (mounted) setState(() => _sending = false);
@@ -81,27 +81,9 @@ class _SquadChatScreenState extends State<SquadChatScreen>
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        toolbarHeight: 0,
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1A1A2E),
-        elevation: 0,
-        title: Row(
-          children: [
-            const SizedBox(width: 4),
-            Text(
-              widget.squadName,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Color(0xFF4C4D7B)),
-            onPressed: () {},
-          ),
-        ],
         bottom: TabBar(
           controller: _tabs,
           labelColor: _primary,
@@ -109,7 +91,9 @@ class _SquadChatScreenState extends State<SquadChatScreen>
           indicatorColor: _accent,
           indicatorWeight: 3,
           labelStyle: const TextStyle(
-              fontWeight: FontWeight.bold, fontSize: 13),
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
           tabs: const [
             Tab(text: '💬 Chat'),
             Tab(text: '📌 Pasteboard'),
@@ -130,15 +114,13 @@ class _SquadChatScreenState extends State<SquadChatScreen>
                     _TypeChip(
                       label: '💬 Text',
                       selected: _msgType == MessageType.text,
-                      onTap: () =>
-                          setState(() => _msgType = MessageType.text),
+                      onTap: () => setState(() => _msgType = MessageType.text),
                     ),
                     const SizedBox(width: 8),
                     _TypeChip(
                       label: '</> Code',
                       selected: _msgType == MessageType.code,
-                      onTap: () =>
-                          setState(() => _msgType = MessageType.code),
+                      onTap: () => setState(() => _msgType = MessageType.code),
                     ),
                   ],
                 ),
@@ -147,20 +129,23 @@ class _SquadChatScreenState extends State<SquadChatScreen>
               // Messages
               Expanded(
                 child: StreamBuilder<List<ChatMessage>>(
-                  stream:
-                      widget.repo.watchMessages(widget.squadId),
+                  stream: widget.repo.watchMessages(widget.squadId),
                   builder: (ctx, snap) {
                     if (!snap.hasData) {
                       return const Center(
-                          child: CircularProgressIndicator(
-                              color: Color(0xFF7B61FF)));
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF7B61FF),
+                        ),
+                      );
                     }
                     final msgs = snap.data!;
                     _scrollToBottom();
                     return ListView.builder(
                       controller: _scrollCtrl,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       itemCount: msgs.length,
                       itemBuilder: (_, i) {
                         final msg = msgs[i];
@@ -170,7 +155,10 @@ class _SquadChatScreenState extends State<SquadChatScreen>
                           isMe: isMe,
                           onPin: () async {
                             await widget.repo.pinMessage(
-                                widget.squadId, msg.id, !msg.pinned);
+                              widget.squadId,
+                              msg.id,
+                              !msg.pinned,
+                            );
                           },
                         );
                       },
@@ -181,7 +169,12 @@ class _SquadChatScreenState extends State<SquadChatScreen>
 
               // Input area
               Container(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                padding: EdgeInsets.fromLTRB(
+                  12,
+                  8,
+                  12,
+                  MediaQuery.of(context).viewInsets.bottom > 0 ? 12 : 100,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
@@ -216,11 +209,14 @@ class _SquadChatScreenState extends State<SquadChatScreen>
                                   ? 'Paste code here...'
                                   : 'Type a message...',
                               hintStyle: TextStyle(
-                                  color: Colors.grey.shade400,
-                                  fontSize: 14),
+                                color: Colors.grey.shade400,
+                                fontSize: 14,
+                              ),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                             ),
                             onSubmitted: (_) => _send(),
                           ),
@@ -260,10 +256,7 @@ class _SquadChatScreenState extends State<SquadChatScreen>
           ),
 
           // ── Pasteboard tab ─────────────────────────────────────────
-          _PasteboardTab(
-            squadId: widget.squadId,
-            repo: widget.repo,
-          ),
+          _PasteboardTab(squadId: widget.squadId, repo: widget.repo),
         ],
       ),
     );
@@ -293,8 +286,9 @@ class _MessageBubble extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
-          mainAxisAlignment:
-              isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisAlignment: isMe
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (!isMe) ...[
@@ -337,16 +331,14 @@ class _MessageBubble extends StatelessWidget {
                           ),
                           if (message.pinned) ...[
                             const SizedBox(width: 4),
-                            const Text('📌',
-                                style: TextStyle(fontSize: 10)),
+                            const Text('📌', style: TextStyle(fontSize: 10)),
                           ],
                         ],
                       ),
                     ),
                   Container(
                     constraints: BoxConstraints(
-                      maxWidth:
-                          MediaQuery.of(context).size.width * 0.72,
+                      maxWidth: MediaQuery.of(context).size.width * 0.72,
                     ),
                     padding: EdgeInsets.symmetric(
                       horizontal: isCode ? 12 : 14,
@@ -356,8 +348,8 @@ class _MessageBubble extends StatelessWidget {
                       color: isCode
                           ? const Color(0xFF1E1E2E)
                           : isMe
-                              ? _primary
-                              : Colors.grey.shade100,
+                          ? _primary
+                          : Colors.grey.shade100,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(18),
                         topRight: const Radius.circular(18),
@@ -367,8 +359,7 @@ class _MessageBubble extends StatelessWidget {
                     ),
                     child: isCode
                         ? Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
@@ -383,13 +374,15 @@ class _MessageBubble extends StatelessWidget {
                                   const Spacer(),
                                   GestureDetector(
                                     onTap: () {
-                                      Clipboard.setData(ClipboardData(
-                                          text: message.content));
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
+                                      Clipboard.setData(
+                                        ClipboardData(text: message.content),
+                                      );
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
-                                            content: Text(
-                                                'Copied to clipboard')),
+                                          content: Text('Copied to clipboard'),
+                                        ),
                                       );
                                     },
                                     child: const Icon(
@@ -415,8 +408,7 @@ class _MessageBubble extends StatelessWidget {
                         : Text(
                             message.content,
                             style: TextStyle(
-                              color:
-                                  isMe ? Colors.white : Colors.black87,
+                              color: isMe ? Colors.white : Colors.black87,
                               fontSize: 14,
                               height: 1.4,
                             ),
@@ -425,10 +417,7 @@ class _MessageBubble extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     _formatTime(message.createdAt),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey.shade400,
-                    ),
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
                   ),
                 ],
               ),
@@ -465,11 +454,10 @@ class _MessageBubble extends StatelessWidget {
                 title: const Text('Copy Code'),
                 onTap: () {
                   Navigator.pop(context);
-                  Clipboard.setData(
-                      ClipboardData(text: message.content));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Copied!')),
-                  );
+                  Clipboard.setData(ClipboardData(text: message.content));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('Copied!')));
                 },
               ),
             const SizedBox(height: 8),
@@ -496,10 +484,11 @@ class _TypeChip extends StatelessWidget {
   final VoidCallback onTap;
   static const Color _primary = Color(0xFF4C4D7B);
 
-  const _TypeChip(
-      {required this.label,
-      required this.selected,
-      required this.onTap});
+  const _TypeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -507,8 +496,7 @@ class _TypeChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: selected ? _primary : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
@@ -541,8 +529,8 @@ class _PasteboardTab extends StatelessWidget {
       builder: (ctx, snap) {
         if (!snap.hasData) {
           return const Center(
-              child: CircularProgressIndicator(
-                  color: Color(0xFF7B61FF)));
+            child: CircularProgressIndicator(color: Color(0xFF7B61FF)),
+          );
         }
         final pinned = snap.data!;
         if (pinned.isEmpty) {
@@ -566,7 +554,7 @@ class _PasteboardTab extends StatelessWidget {
           );
         }
         return ListView.separated(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           itemCount: pinned.length,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (_, i) {
@@ -575,14 +563,10 @@ class _PasteboardTab extends StatelessWidget {
             return Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: isCode
-                    ? const Color(0xFF1E1E2E)
-                    : Colors.grey.shade50,
+                color: isCode ? const Color(0xFF1E1E2E) : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isCode
-                      ? Colors.transparent
-                      : Colors.grey.shade200,
+                  color: isCode ? Colors.transparent : Colors.grey.shade200,
                 ),
               ),
               child: Column(
@@ -590,8 +574,7 @@ class _PasteboardTab extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Text('📌',
-                          style: TextStyle(fontSize: 12)),
+                      const Text('📌', style: TextStyle(fontSize: 12)),
                       const SizedBox(width: 4),
                       Text(
                         msg.senderName ?? 'Member',
@@ -607,15 +590,16 @@ class _PasteboardTab extends StatelessWidget {
                       if (isCode)
                         GestureDetector(
                           onTap: () {
-                            Clipboard.setData(
-                                ClipboardData(text: msg.content));
+                            Clipboard.setData(ClipboardData(text: msg.content));
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Copied!')),
+                              const SnackBar(content: Text('Copied!')),
                             );
                           },
-                          child: const Icon(Icons.copy,
-                              size: 14, color: Colors.white38),
+                          child: const Icon(
+                            Icons.copy,
+                            size: 14,
+                            color: Colors.white38,
+                          ),
                         ),
                     ],
                   ),
@@ -624,9 +608,7 @@ class _PasteboardTab extends StatelessWidget {
                     msg.content,
                     style: TextStyle(
                       fontSize: 13,
-                      color: isCode
-                          ? const Color(0xFFE8E8E8)
-                          : Colors.black87,
+                      color: isCode ? const Color(0xFFE8E8E8) : Colors.black87,
                       fontFamily: isCode ? 'monospace' : null,
                       height: 1.4,
                     ),

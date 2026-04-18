@@ -6,6 +6,7 @@ import '../models/squad_model.dart';
 import 'squad_home_screen.dart';
 import 'squad_discovery_screen.dart';
 import 'create_squad_screen.dart';
+import 'my_squads_screen.dart';
 
 /// Entry point for the Group Hub tab.
 /// Shows either "Join/Create Squad" onboarding OR directly jumps to your squad.
@@ -40,10 +41,13 @@ class _HubScreenState extends State<HubScreen> {
           );
         }
         final data = snap.data?.data() as Map<String, dynamic>?;
-        final squadId = data?['squadId'] as String?;
+        final squadIds = List<String>.from(data?['squadIds'] ?? []);
+        if (data != null && data.containsKey('squadId') && data['squadId'] != null) {
+          if (!squadIds.contains(data['squadId'])) squadIds.add(data['squadId']);
+        }
 
-        if (squadId != null && squadId.isNotEmpty) {
-          return SquadHomeScreen(squadId: squadId, uid: _uid);
+        if (squadIds.isNotEmpty) {
+          return MySquadsScreen(squadIds: squadIds, uid: _uid, repo: _repo);
         }
         return _NoSquadScreen(repo: _repo, uid: _uid);
       },

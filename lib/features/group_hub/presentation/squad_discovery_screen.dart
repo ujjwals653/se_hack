@@ -219,21 +219,10 @@ class _SquadCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Text('🏆', style: TextStyle(fontSize: 12)),
-                    const SizedBox(width: 3),
-                    Text(
-                      '${squad.trophies} trophies',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF4C4D7B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
                     const Text('👥', style: TextStyle(fontSize: 12)),
                     const SizedBox(width: 3),
                     Text(
-                      '${squad.memberCount}/${squad.maxMembers}',
+                      '${squad.memberCount}/${squad.maxMembers} members',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.grey.shade600,
