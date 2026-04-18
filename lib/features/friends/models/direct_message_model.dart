@@ -7,6 +7,11 @@ class DirectMessage {
   final String text;
   final DateTime timestamp;
   final MessageType type;
+  
+  // File attachments
+  final String? fileUrl;
+  final String? fileName;
+  final int? fileSize;
 
   DirectMessage({
     required this.id,
@@ -14,6 +19,9 @@ class DirectMessage {
     required this.text,
     required this.timestamp,
     required this.type,
+    this.fileUrl,
+    this.fileName,
+    this.fileSize,
   });
 
   factory DirectMessage.fromDoc(DocumentSnapshot doc) {
@@ -27,6 +35,9 @@ class DirectMessage {
         (e) => e.name == (data['type'] ?? 'text'),
         orElse: () => MessageType.text,
       ),
+      fileUrl: data['fileUrl'],
+      fileName: data['fileName'],
+      fileSize: (data['fileSize'] as num?)?.toInt(),
     );
   }
 
@@ -36,6 +47,9 @@ class DirectMessage {
       'text': text,
       'timestamp': FieldValue.serverTimestamp(),
       'type': type.name,
+      if (fileUrl != null) 'fileUrl': fileUrl,
+      if (fileName != null) 'fileName': fileName,
+      if (fileSize != null) 'fileSize': fileSize,
     };
   }
 }

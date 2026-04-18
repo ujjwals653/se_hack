@@ -1,5 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/services/storage_service.dart';
 import '../data/squad_repository.dart';
 import '../models/chat_message_model.dart';
 
@@ -58,22 +64,104 @@ class _SquadChatScreenState extends State<SquadChatScreen>
     });
   }
 
+  final _storage = StorageService();
+
   Future<void> _send() async {
     final text = _msgCtrl.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && _msgType != MessageType.image && _msgType != MessageType.file) return;
     setState(() => _sending = true);
     _msgCtrl.clear();
     try {
       await widget.repo.sendMessage(widget.squadId, _msgType, text);
       _scrollToBottom();
+      setState(() => _msgType = MessageType.text); // reset type
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
     if (mounted) setState(() => _sending = false);
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final xFile = await picker.pickImage(source: ImageSource.gallery);
+    if (xFile == null) return;
+    final file = File(xFile.path);
+
+    setState(() => _sending = true);
+    try {
+      final url = await _storage.uploadChatAttachment(file, widget.uid);
+      await widget.repo.sendMessage(
+        widget.squadId,
+        MessageType.image,
+        'Photo',
+        fileUrl: url,
+      );
+      _scrollToBottom();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload Error: $e')));
+      }
+    }
+    if (mounted) setState(() => _sending = false);
+  }
+
+  Future<void> _pickAndUploadDocument() async {
+    final result = await FilePicker.platform.pickFiles();
+    if (result == null || result.files.single.path == null) return;
+    final file = File(result.files.single.path!);
+
+    setState(() => _sending = true);
+    try {
+      final url = await _storage.uploadChatAttachment(file, widget.uid);
+      await widget.repo.sendMessage(
+        widget.squadId,
+        MessageType.file,
+        result.files.single.name,
+        fileUrl: url,
+        fileName: result.files.single.name,
+        fileSize: result.files.single.size,
+      );
+      _scrollToBottom();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload Error: $e')));
+      }
+    }
+    if (mounted) setState(() => _sending = false);
+  }
+
+  void _showAttachmentOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Photo/Video'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndUploadImage();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.insert_drive_file),
+              title: const Text('Document'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndUploadDocument();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -205,6 +293,10 @@ class _SquadChatScreenState extends State<SquadChatScreen>
                                   )
                                 : null,
                             decoration: InputDecoration(
+                              prefixIcon: IconButton(
+                                icon: const Icon(Icons.attach_file, color: Colors.grey),
+                                onPressed: _showAttachmentOptions,
+                              ),
                               hintText: _msgType == MessageType.code
                                   ? 'Paste code here...'
                                   : 'Type a message...',
@@ -405,6 +497,49 @@ class _MessageBubble extends StatelessWidget {
                               ),
                             ],
                           )
+                        : message.type == MessageType.image && message.fileUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: CachedNetworkImage(
+                                  imageUrl: message.fileUrl!,
+                                  width: 200,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => const SizedBox(
+                                      width: 200, height: 200, child: Center(child: CircularProgressIndicator())),
+                                  errorWidget: (context, url, error) => const Icon(Icons.error),
+                                ),
+                              )
+                        : message.type == MessageType.file && message.fileUrl != null
+                            ? GestureDetector(
+                                onTap: () async {
+                                  final uri = Uri.parse(message.fileUrl!);
+                                  if (await canLaunchUrl(uri)) await launchUrl(uri);
+                                },
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.insert_drive_file, color: isMe ? Colors.white : Colors.grey, size: 28),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            message.fileName ?? 'Document',
+                                            style: TextStyle(color: isMe ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          if (message.fileSize != null)
+                                            Text(
+                                              '${(message.fileSize! / 1024).toStringAsFixed(1)} KB',
+                                              style: TextStyle(color: isMe ? Colors.white70 : Colors.black54, fontSize: 11),
+                                            ),
+                                        ],
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              )
                         : Text(
                             message.content,
                             style: TextStyle(

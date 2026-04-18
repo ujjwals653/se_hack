@@ -99,6 +99,8 @@ class Squad {
   final DateTime createdAt;
   final int maxMembers;
   final int memberCount;
+  final String? lastMessage;
+  final DateTime? lastMessageTime;
 
   Squad({
     required this.id,
@@ -113,6 +115,8 @@ class Squad {
     required this.createdAt,
     this.maxMembers = 15,
     this.memberCount = 0,
+    this.lastMessage,
+    this.lastMessageTime,
   });
 
   factory Squad.fromDoc(DocumentSnapshot doc) {
@@ -130,6 +134,8 @@ class Squad {
       createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       maxMembers: (d['maxMembers'] as num?)?.toInt() ?? 15,
       memberCount: (d['memberCount'] as num?)?.toInt() ?? 0,
+      lastMessage: d['lastMessage'],
+      lastMessageTime: (d['lastMessageTime'] as Timestamp?)?.toDate(),
     );
   }
 

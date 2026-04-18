@@ -12,6 +12,8 @@ import 'package:se_hack/features/auth/login_screen.dart';
 import 'package:se_hack/features/home/home_screen.dart';
 import 'package:se_hack/features/posts/bloc/posts_bloc.dart';
 import 'package:se_hack/firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +24,32 @@ void main() async {
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
   );
+  // Add global observer immediately
+  WidgetsBinding.instance.addObserver(_AppLifecycleObserver());
+  
   runApp(const MainApp());
+}
+
+class _AppLifecycleObserver extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    
+    // Default to offline when detached
+    String status = 'offline';
+    if (state == AppLifecycleState.resumed) {
+      status = 'online';
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      status = 'idle';
+    }
+
+    // Fire and forget update
+    FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      'status': status,
+    }).catchError((_) {}); // Ignore errors if offline
+  }
 }
 
 class MainApp extends StatelessWidget {

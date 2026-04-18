@@ -29,13 +29,16 @@ class FriendsRepository {
              final userDoc = await _db.collection('users').doc(doc.id).get();
              if (userDoc.exists) {
                 final friendData = userDoc.data() as Map<String, dynamic>;
+                final relationData = doc.data() as Map<String, dynamic>;
                 friends.add(
                   Friend(
                     uid: doc.id,
                     displayName: friendData['displayName'] ?? 'Unknown User',
                     photoUrl: friendData['photoUrl'],
                     status: UserStatusX.fromString(friendData['status'] ?? 'online'),
-                    joinedAt: (doc['joinedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+                    joinedAt: (relationData['joinedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+                    lastMessage: relationData['lastMessage'],
+                    lastMessageTime: (relationData['lastMessageTime'] as Timestamp?)?.toDate(),
                   )
                 );
              }
@@ -184,11 +187,12 @@ class FriendsRepository {
           .where('type', isEqualTo: 'incoming')
           .get();
       for (final doc in friendReqSnap.docs) {
+        // Spread FIRST so our 'type' key overrides the Firestore 'type: incoming'
         notifications.add({
+          ...doc.data(),
           'id': doc.id,
           'type': 'friendRequest',
           'uid': doc.id,
-          ...doc.data()
         });
       }
 
@@ -244,15 +248,41 @@ class FriendsRepository {
         .map((s) => s.docs.map(DirectMessage.fromDoc).toList());
   }
 
-  Future<void> sendDM(String targetUid, String content, MessageType type) async {
+  Future<void> sendDM(
+    String targetUid,
+    String content,
+    MessageType type, {
+    String? fileUrl,
+    String? fileName,
+    int? fileSize,
+  }) async {
      final chatId = _getChatId(_uid, targetUid);
-     await _db.collection('directMessages').doc(chatId).collection('messages').add({
+     
+     final batch = _db.batch();
+     final msgRef = _db.collection('directMessages').doc(chatId).collection('messages').doc();
+     
+     batch.set(msgRef, {
          'senderId': _uid,
          'text': content,
          'timestamp': FieldValue.serverTimestamp(),
          'type': type.name,
+         if (fileUrl != null) 'fileUrl': fileUrl,
+         if (fileName != null) 'fileName': fileName,
+         if (fileSize != null) 'fileSize': fileSize,
      });
 
-     // Optionally, update a chat preview in users/{uid}/recentChats
+     String snippet = content;
+     if (type == MessageType.image) snippet = '📸 Photo';
+     if (type == MessageType.file) snippet = '📎 Document';
+
+     final updateData = {
+       'lastMessage': snippet,
+       'lastMessageTime': FieldValue.serverTimestamp(),
+     };
+
+     batch.set(_db.collection('users').doc(_uid).collection('friends').doc(targetUid), updateData, SetOptions(merge: true));
+     batch.set(_db.collection('users').doc(targetUid).collection('friends').doc(_uid), updateData, SetOptions(merge: true));
+     
+     await batch.commit();
   }
 }

@@ -136,6 +136,17 @@ class SquadRepository {
               ..sort((a, b) => a.role.index.compareTo(b.role.index)),
       );
 
+  Stream<List<Squad>> watchMySquads(List<String> squadIds) {
+    if (squadIds.isEmpty) return Stream.value([]);
+    // Limit to 10 for Firestore 'whereIn' restrictions
+    final ids = squadIds.length > 10 ? squadIds.sublist(0, 10) : squadIds;
+    return _db
+        .collection('squads')
+        .where(FieldPath.documentId, whereIn: ids)
+        .snapshots()
+        .map((snap) => snap.docs.map(Squad.fromDoc).toList());
+  }
+
   Future<List<Squad>> searchSquads(String query) async {
     final snap = await _db
         .collection('squads')
@@ -239,10 +250,17 @@ class SquadRepository {
   Future<void> sendMessage(
     String squadId,
     MessageType type,
-    String content,
-  ) async {
+    String content, {
+    String? fileUrl,
+    String? fileName,
+    int? fileSize,
+  }) async {
     final user = _auth.currentUser!;
-    await _db.collection('squads').doc(squadId).collection('chat').add({
+    
+    final batch = _db.batch();
+    final msgRef = _db.collection('squads').doc(squadId).collection('chat').doc();
+    
+    batch.set(msgRef, {
       'uid': _uid,
       'type': type.name,
       'content': content,
@@ -250,7 +268,22 @@ class SquadRepository {
       'createdAt': FieldValue.serverTimestamp(),
       'senderName': user.displayName ?? 'Member',
       'senderPhoto': user.photoURL,
+      if (fileUrl != null) 'fileUrl': fileUrl,
+      if (fileName != null) 'fileName': fileName,
+      if (fileSize != null) 'fileSize': fileSize,
     });
+
+    String snippet = content;
+    if (type == MessageType.image) snippet = '📸 Photo';
+    if (type == MessageType.file) snippet = '📎 Document';
+    if (type == MessageType.code) snippet = '</> Code snippet';
+
+    batch.update(_db.collection('squads').doc(squadId), {
+      'lastMessage': "\${user.displayName ?? 'Someone'}: $snippet",
+      'lastMessageTime': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
   }
 
   Future<void> pinMessage(String squadId, String messageId, bool pinned) => _db

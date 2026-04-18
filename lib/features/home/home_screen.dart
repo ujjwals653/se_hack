@@ -598,7 +598,7 @@ class _NotificationBell extends StatelessWidget {
         final count = notifications.length;
 
         return GestureDetector(
-          onTap: () => _showNotificationPanel(context, notifications),
+          onTap: () => _showNotificationPanel(context),
           child: CircleAvatar(
             backgroundColor: Colors.white,
             radius: 20,
@@ -635,31 +635,24 @@ class _NotificationBell extends StatelessWidget {
     );
   }
 
-  void _showNotificationPanel(
-    BuildContext context,
-    List<Map<String, dynamic>> notifications,
-  ) {
+  void _showNotificationPanel(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _NotificationPanel(
-        notifications: notifications,
-        repo: _repo,
-      ),
+      builder: (_) => _NotificationPanel(repo: _repo),
     );
   }
 }
 
 // ==== NOTIFICATION PANEL ====
 class _NotificationPanel extends StatelessWidget {
-  final List<Map<String, dynamic>> notifications;
   final FriendsRepository repo;
 
   static const Color _primary = Color(0xFF4C4D7B);
   static const Color _accent = Color(0xFF7B61FF);
 
-  const _NotificationPanel({required this.notifications, required this.repo});
+  const _NotificationPanel({required this.repo});
 
   @override
   Widget build(BuildContext context) {
@@ -669,102 +662,114 @@ class _NotificationPanel extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Column(
-        children: [
-          // Handle bar
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                const Text(
-                  'Notifications',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: repo.watchAllNotifications(),
+        builder: (ctx, snap) {
+          final live = snap.data ?? [];
+          final isLoading = snap.connectionState == ConnectionState.waiting && live.isEmpty;
+
+          return Column(
+            children: [
+              // Handle bar
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const Spacer(),
-                if (notifications.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(12),
+              ),
+              const SizedBox(height: 16),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Notifications',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
-                    child: Text(
-                      '${notifications.length} new',
-                      style: const TextStyle(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                    const Spacer(),
+                    if (live.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${live.length} new',
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          // List
-          Expanded(
-            child: notifications.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.notifications_none, size: 56, color: Colors.grey.shade300),
-                        const SizedBox(height: 12),
-                        Text(
-                          'All caught up!',
-                          style: TextStyle(fontSize: 16, color: Colors.grey.shade500, fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'No new notifications.',
-                          style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
-                        ),
-                      ],
-                    ),
-                  )
-                : StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: repo.watchAllNotifications(),
-                    builder: (ctx, snap) {
-                      final live = snap.data ?? notifications;
-                      return ListView.separated(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: live.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
-                        itemBuilder: (ctx, i) {
-                          final n = live[i];
-                          final type = n['type'] as String?;
-                          if (type == 'friendRequest') {
-                            return _FriendRequestTile(
-                              notification: n,
-                              repo: repo,
-                              onAction: () => Navigator.pop(context),
-                            );
-                          } else if (type == 'squadInvite') {
-                            return _SquadInviteTile(
-                              notification: n,
-                              repo: repo,
-                              onAction: () => Navigator.pop(context),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      );
-                    },
-                  ),
-          ),
-        ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              // List
+              Expanded(
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF7B61FF)))
+                    : live.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.notifications_none, size: 56, color: Colors.grey.shade300),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'All caught up!',
+                                  style: TextStyle(fontSize: 16, color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'No new notifications.',
+                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: live.length,
+                            separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
+                            itemBuilder: (ctx, i) {
+                              final n = live[i];
+                              final type = n['type'] as String?;
+                              if (type == 'friendRequest') {
+                                return _FriendRequestTile(
+                                  notification: n,
+                                  repo: repo,
+                                  onAction: () => Navigator.pop(context),
+                                );
+                              } else if (type == 'squadInvite') {
+                                return _SquadInviteTile(
+                                  notification: n,
+                                  repo: repo,
+                                  onAction: () => Navigator.pop(context),
+                                );
+                              }
+                              // Unknown type — show a generic dismiss tile
+                              return ListTile(
+                                leading: const Icon(Icons.notifications_outlined),
+                                title: Text(n['type']?.toString() ?? 'Notification'),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.close, size: 18),
+                                  onPressed: () => repo.dismissNotification(n['id'] as String? ?? ''),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

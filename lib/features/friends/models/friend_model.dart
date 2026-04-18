@@ -33,6 +33,8 @@ class Friend {
   final String? photoUrl;
   final UserStatus status;
   final DateTime joinedAt;
+  final String? lastMessage;
+  final DateTime? lastMessageTime;
 
   Friend({
     required this.uid,
@@ -40,6 +42,8 @@ class Friend {
     this.photoUrl,
     required this.status,
     required this.joinedAt,
+    this.lastMessage,
+    this.lastMessageTime,
   });
 
   factory Friend.fromDoc(DocumentSnapshot doc) {
@@ -50,6 +54,8 @@ class Friend {
       photoUrl: data['photoUrl'],
       status: UserStatusX.fromString(data['status'] ?? 'online'),
       joinedAt: (data['joinedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      lastMessage: data['lastMessage'],
+      lastMessageTime: (data['lastMessageTime'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -59,6 +65,8 @@ class Friend {
       'photoUrl': photoUrl,
       'status': status.name,
       'joinedAt': FieldValue.serverTimestamp(),
+      if (lastMessage != null) 'lastMessage': lastMessage,
+      if (lastMessageTime != null) 'lastMessageTime': FieldValue.serverTimestamp(),
     };
   }
 }
