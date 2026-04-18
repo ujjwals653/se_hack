@@ -16,6 +16,7 @@ import 'package:se_hack/features/context_switch/domain/cognitive_debt_service.da
 import 'package:se_hack/features/friends/data/friends_repository.dart';
 import 'package:se_hack/features/attendance/domain/attendance_service.dart';
 import 'package:se_hack/features/timetable/presentation/attendance_screen.dart';
+import 'package:se_hack/features/rag/presentation/rag_screen.dart';
 
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
@@ -302,6 +303,20 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const se_hack_focus.FocusScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildGridItem(
+                      icon: Icons.auto_awesome,
+                      title: 'Study AI',
+                      color: const Color(0xFFEDE9FE),
+                      iconColor: const Color(0xFF7C3AED),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RagScreen(),
                           ),
                         );
                       },
