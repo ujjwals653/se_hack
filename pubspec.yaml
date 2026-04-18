@@ -9,11 +9,33 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  pdfx:
+  native_pdf_renderer:
+  pdf:
+  google_mlkit_text_recognition:
+  socket_io_client:
+  google_sign_in:
+  googleapis:
+  flutter_foreground_task:
+  flutter_painter_v2:
+  flutter_code_editor:
+  flutter_highlight:
+  appflowy_board:
+  sqflite:
+  hive:
+  hive_flutter:
+  tflite_flutter:
+  flutter_bloc:
+  equatable:
+  go_router:
+  path_provider:
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  hive_generator:
+  build_runner:
 
 flutter:
   uses-material-design: true
