@@ -3,10 +3,10 @@ import 'package:se_hack/core/constants/api_keys.dart';
 
 /// Generates 768-dimensional text embeddings using Gemini text-embedding-004.
 class EmbeddingService {
-  // Uses geminiRagApiKey (key #2) — separate quota pool from timetable
+  // Uses geminiApiKey
   final _model = GenerativeModel(
     model: 'text-embedding-004',
-    apiKey: geminiRagApiKey,
+    apiKey: geminiApiKey,
   );
 
   /// Embeds a single text string. Returns a 768-dim float list.

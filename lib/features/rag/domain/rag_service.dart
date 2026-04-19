@@ -18,9 +18,9 @@ class RagAnswer {
 }
 
 class RagService {
-  // Uses geminiRagApiKey (key #2) — independent quota from timetable (key #1)
-  final _llm = GenerativeModel(model: 'gemini-2.0-flash-lite', apiKey: geminiRagApiKey);
-  final _ocrModel = GenerativeModel(model: 'gemini-2.0-flash-lite', apiKey: geminiRagApiKey);
+  // Uses geminiApiKey
+  final _llm = GenerativeModel(model: 'gemini-2.0-flash', apiKey: geminiApiKey);
+  final _ocrModel = GenerativeModel(model: 'gemini-2.0-flash', apiKey: geminiApiKey);
 
   final RagRepository _repo;
   final EmbeddingService _embeddings;
@@ -151,9 +151,9 @@ ANSWER:''';
       if (pageImage != null) {
         buffer.writeln(await _ocrImage(pageImage.bytes));
       }
-      // 2s gap between pages to respect gemini-1.5-flash 15 RPM free tier
+      // 5s gap between pages to respect gemini-2.0-flash 15 RPM free tier strictly
       if (i < doc.pagesCount) {
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(seconds: 5));
       }
     }
     await doc.close();
