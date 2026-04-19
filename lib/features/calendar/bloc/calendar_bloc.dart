@@ -1,9 +1,11 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:se_hack/features/calendar/data/calendar_repository.dart';
 import 'package:se_hack/features/calendar/domain/calendar_event_model.dart';
 import 'package:se_hack/features/group_hub/data/squad_repository.dart';
 import 'package:se_hack/features/group_hub/models/deadline_model.dart';
+import 'package:se_hack/features/timetable/data/timetable_repository.dart';
 
 // ─── Events ───────────────────────────────────────────────────────────────────
 
@@ -41,6 +43,8 @@ class CalendarEventUndoDeleteRequested extends CalendarEvent {
 }
 
 class CalendarSyncSquadDeadlinesRequested extends CalendarEvent {}
+
+class CalendarSyncTimetableRequested extends CalendarEvent {}
 
 // ─── States ───────────────────────────────────────────────────────────────────
 
@@ -85,6 +89,113 @@ class CalendarBloc extends Bloc<CalendarEvent, CalendarState> {
     on<CalendarEventDeleteRequested>(_onDelete);
     on<CalendarEventUndoDeleteRequested>(_onUndoDelete);
     on<CalendarSyncSquadDeadlinesRequested>(_onSyncSquadDeadlines);
+    on<CalendarSyncTimetableRequested>(_onSyncTimetable);
+  }
+
+  Future<void> _onSyncTimetable(
+    CalendarSyncTimetableRequested event,
+    Emitter<CalendarState> emit,
+  ) async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      final timetableRepo = TimetableRepository();
+      final timetable = await timetableRepo.getTimetable(uid);
+      if (timetable == null || !timetable.hasTimetable) return;
+
+      final currentEvents = state is CalendarLoaded
+          ? (state as CalendarLoaded).events
+          : <CalendarEventModel>[];
+
+      final now = DateTime.now();
+      // Find the start of the current week (Monday)
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+
+      // Timetable map: Mon, Tue, Wed, Thu, Fri, Sat
+      final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+      for (final dayEntry in timetable.days.entries) {
+        final dayName = dayEntry.key;
+        final entries = dayEntry.value;
+        final dayIndex = dayNames.indexOf(dayName);
+        if (dayIndex == -1) continue;
+
+        final baseDate = startOfWeek.add(Duration(days: dayIndex));
+
+        for (final entry in entries) {
+          if (entry.isFree) continue;
+
+          // Parse start and end times, with fallback mapped to period number (1st period = 9 AM)
+          final partsStart = entry.startTime.split(':');
+          final partsEnd = entry.endTime.split(':');
+
+          int hourStart = 9 + (entry.period - 1);
+          int minStart = 0;
+          int hourEnd = 10 + (entry.period - 1);
+          int minEnd = 0;
+
+          if (partsStart.length >= 2) {
+            hourStart = int.tryParse(partsStart[0].trim()) ?? hourStart;
+            minStart = int.tryParse(partsStart[1].trim()) ?? 0;
+          }
+          if (partsEnd.length >= 2) {
+            hourEnd = int.tryParse(partsEnd[0].trim()) ?? hourEnd;
+            minEnd = int.tryParse(partsEnd[1].trim()) ?? 0;
+          }
+
+          final startDateTime = DateTime(
+            baseDate.year,
+            baseDate.month,
+            baseDate.day,
+            hourStart,
+            minStart,
+          );
+          final endDateTime = DateTime(
+            baseDate.year,
+            baseDate.month,
+            baseDate.day,
+            hourEnd,
+            minEnd,
+          );
+
+          final title = '[Class] ${entry.subject}';
+
+          // To avoid duplicates, we can check if there's an event at exactly the same start time with the same title.
+          // Note: occursOn doesn't check specific times, but we can do a simple check.
+          final exists = currentEvents.any(
+            (e) =>
+                e.title == title &&
+                e.start?.weekday == startDateTime.weekday &&
+                e.start?.hour == startDateTime.hour &&
+                e.start?.minute == startDateTime.minute,
+          );
+
+          if (!exists) {
+            final calendarEvent = CalendarEventModel(
+              id: '',
+              title: title,
+              start: startDateTime,
+              end: endDateTime,
+              isAllDay: false,
+              location: entry.section,
+              description:
+                  'Routine Class sync\\nSubject: ${entry.subject}\\nPeriod: ${entry.period}',
+              recurrenceRule: ['RRULE:FREQ=WEEKLY;COUNT=16'],
+            );
+            await _repository.addEvent(calendarEvent);
+          }
+        }
+      }
+
+      await _fetch(emit);
+    } catch (e) {
+      if (e is CalendarAuthException) {
+        emit(CalendarNeedsAuth());
+      } else {
+        emit(CalendarError(e.toString()));
+      }
+    }
   }
 
   Future<void> _onSyncSquadDeadlines(

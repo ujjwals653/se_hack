@@ -7,6 +7,7 @@ class CalendarEventModel {
   final String? description;
   final String? location;
   final String? colorHex;
+  final List<String>? recurrenceRule;
 
   const CalendarEventModel({
     required this.id,
@@ -17,6 +18,7 @@ class CalendarEventModel {
     this.description,
     this.location,
     this.colorHex,
+    this.recurrenceRule,
   });
 
   /// Whether this event falls on (or spans across) the given date.

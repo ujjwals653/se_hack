@@ -4,8 +4,7 @@ import 'package:googleapis_auth/googleapis_auth.dart' as gauth;
 import 'package:http/http.dart' as http;
 import 'package:se_hack/features/calendar/domain/calendar_event_model.dart';
 
-const _calendarEventsScope =
-    'https://www.googleapis.com/auth/calendar.events';
+const _calendarEventsScope = 'https://www.googleapis.com/auth/calendar.events';
 
 class CalendarRepository {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -67,7 +66,11 @@ class CalendarRepository {
       final calendarApi = gcal.CalendarApi(authClient);
       final now = DateTime.now().toUtc();
       final timeMin = DateTime(now.year, now.month - monthsBack, 1).toUtc();
-      final timeMax = DateTime(now.year, now.month + monthsAhead + 1, 0).toUtc();
+      final timeMax = DateTime(
+        now.year,
+        now.month + monthsAhead + 1,
+        0,
+      ).toUtc();
 
       final events = await calendarApi.events.list(
         'primary',
@@ -101,8 +104,18 @@ class CalendarRepository {
         event.start = gcal.EventDateTime(date: eventModel.start);
         event.end = gcal.EventDateTime(date: eventModel.end);
       } else {
-        event.start = gcal.EventDateTime(dateTime: eventModel.start?.toUtc());
-        event.end = gcal.EventDateTime(dateTime: eventModel.end?.toUtc());
+        event.start = gcal.EventDateTime(
+          dateTime: eventModel.start?.toUtc(),
+          timeZone: 'UTC',
+        );
+        event.end = gcal.EventDateTime(
+          dateTime: eventModel.end?.toUtc(),
+          timeZone: 'UTC',
+        );
+      }
+
+      if (eventModel.recurrenceRule != null) {
+        event.recurrence = eventModel.recurrenceRule;
       }
 
       final createdEvent = await calendarApi.events.insert(event, 'primary');

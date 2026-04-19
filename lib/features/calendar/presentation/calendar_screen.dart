@@ -112,8 +112,13 @@ class _CalendarScreenState extends State<CalendarScreen>
             label: 'Sync Timetable',
             labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w500),
             onTap: () {
+              context.read<CalendarBloc>().add(
+                CalendarSyncTimetableRequested(),
+              );
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Syncing Timetable...')),
+                const SnackBar(
+                  content: Text('Syncing Timetable to Calendar...'),
+                ),
               );
             },
           ),
