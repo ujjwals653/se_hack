@@ -67,7 +67,7 @@ class SquadRepository {
         {
           'role': 'member',
           'joinedAt': FieldValue.serverTimestamp(),
-          'displayName': user.displayName ?? 'Member',
+          'displayName': user.displayName ?? user.email?.split('@').first ?? 'Member',
           'photoUrl': user.photoURL,
         },
       );
@@ -267,7 +267,7 @@ class SquadRepository {
       'content': content,
       'pinned': false,
       'createdAt': FieldValue.serverTimestamp(),
-      'senderName': user.displayName ?? 'Member',
+      'senderName': user.displayName ?? user.email?.split('@').first ?? 'Member',
       'senderPhoto': user.photoURL,
       if (fileUrl != null) 'fileUrl': fileUrl,
       if (fileName != null) 'fileName': fileName,
@@ -279,8 +279,9 @@ class SquadRepository {
     if (type == MessageType.file) snippet = '📎 Document';
     if (type == MessageType.code) snippet = '</> Code snippet';
 
+    final safeName = user.displayName ?? user.email?.split('@').first ?? 'Someone';
     batch.update(_db.collection('squads').doc(squadId), {
-      'lastMessage': "\${user.displayName ?? 'Someone'}: $snippet",
+      'lastMessage': "$safeName: $snippet",
       'lastMessageTime': FieldValue.serverTimestamp(),
     });
 
@@ -417,7 +418,7 @@ class SquadRepository {
       'content': page.content,
       'subject': page.subject,
       'lastEditedBy': _uid,
-      'lastEditedByName': user.displayName ?? 'Member',
+      'lastEditedByName': user.displayName ?? user.email?.split('@').first ?? 'Member',
       'lastEditedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -455,7 +456,7 @@ class SquadRepository {
       'subject': subject,
       'semester': semester,
       'uploadedBy': _uid,
-      'uploaderName': user.displayName ?? 'Member',
+      'uploaderName': user.displayName ?? user.email?.split('@').first ?? 'Member',
       'uploadedAt': FieldValue.serverTimestamp(),
       'fileType': fileName.toLowerCase().endsWith('.pdf')
           ? 'pdf'
