@@ -57,8 +57,8 @@ class RagService {
         ? await _extractTextFromPdf(file)
         : await _extractTextFromImage(file);
 
-    if (text.trim().isEmpty) {
-      throw Exception('No text could be extracted from the file.');
+    if (text.trim().length < 10) {
+      throw Exception('No meaningful content could be extracted from the file.');
     }
 
     final chunkTexts = _chunker.chunk(text);
@@ -131,7 +131,8 @@ class RagService {
     final prompt =
         '''You are a study assistant. Answer the student\'s question using ONLY the context provided below.
 If the answer is not in the context, say "I couldn\'t find this in your notes."
-Be concise, clear, and use bullet points where helpful.
+Be concise and clear. Use plain text only — no markdown, no asterisks, no bold symbols.
+Use numbered or bullet lists with a hyphen (-) if needed.
 
 CONTEXT:
 $context
@@ -146,10 +147,16 @@ ANSWER:''';
     while (attempts < geminiApiKeysPool.length * 2) {
       try {
         final response = await _llm.generateContent([Content.text(prompt)]);
-        final answer = response.text ?? "Sorry, I couldn't generate an answer.";
+        final rawAnswer = response.text ?? "Sorry, I couldn't generate an answer.";
+        // Strip residual markdown bold/italic markers
+        final answer = rawAnswer
+            .replaceAll(RegExp(r'\*\*(.*?)\*\*'), r'\1')
+            .replaceAll(RegExp(r'\*(.*?)\*'), r'\1')
+            .replaceAll(RegExp(r'__(.*?)__'), r'\1')
+            .trim();
 
         final sources = topChunks.map((c) => c.sourceName).toSet().toList();
-        return RagAnswer(text: answer.trim(), sources: sources);
+        return RagAnswer(text: answer, sources: sources);
       } catch (e) {
         final errorText = e.toString().toLowerCase();
         if (errorText.contains('quota') ||
@@ -229,15 +236,24 @@ ANSWER:''';
 
   Future<String> _extractTextFromImage(File file) async {
     final bytes = await file.readAsBytes();
-    return _ocrImage(bytes);
+    final ext = p.extension(file.path).toLowerCase();
+    final mime = ext == '.jpg' || ext == '.jpeg' ? 'image/jpeg'
+               : ext == '.webp' ? 'image/webp'
+               : ext == '.gif'  ? 'image/gif'
+               : 'image/png';
+    return _ocrImage(bytes, mimeType: mime);
   }
 
-  Future<String> _ocrImage(Uint8List imageBytes) async {
+  Future<String> _ocrImage(Uint8List imageBytes, {String mimeType = 'image/png'}) async {
     const prompt =
-        'Extract ALL text from this image. Output only the raw text, no formatting, no explanations.';
+        'Analyse this image thoroughly and provide:\n'
+        '1. A detailed description of everything visible (objects, people, scene, colours, layout, context).\n'
+        '2. ALL text found in the image, exactly as written.\n'
+        '3. Any diagrams, charts, equations or structured data — describe them in plain words.\n'
+        'Write in clear plain paragraphs. Do NOT use markdown, asterisks or special symbols.';
     final content = Content.multi([
       TextPart(prompt),
-      DataPart('image/png', imageBytes),
+      DataPart(mimeType, imageBytes),
     ]);
     int attempts = 0;
     while (attempts < geminiApiKeysPool.length * 2) {

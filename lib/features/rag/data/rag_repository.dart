@@ -62,20 +62,39 @@ class RagRepository {
     final database = await db;
     
     final cleanQuery = queryText.replaceAll('"', ' ').trim();
-    if (cleanQuery.isEmpty) return [];
+    if (cleanQuery.isEmpty) return _getRecentFallback(database);
     
     final words = cleanQuery.split(RegExp(r'\s+')).where((e) => e.length > 2).toList();
-    if (words.isEmpty) return [];
+    if (words.isEmpty) return _getRecentFallback(database);
 
-    // Standard SQLite LIKE query to avoid FTS module errors on Android
-    final whereClause = words.map((w) => 'text LIKE ?').join(' OR ');
-    final args = words.map((w) => '%$w%').toList();
+    // Standard SQLite LIKE query
+    final whereClause = words.map((w) => 'text LIKE ? OR source_name LIKE ?').join(' OR ');
+    
+    final args = <String>[];
+    for (final w in words) {
+      args.add('%$w%');
+      args.add('%$w%'); // for source_name
+    }
 
     final rows = await database.rawQuery('''
       SELECT rowid, * FROM rag_chunks 
       WHERE $whereClause 
       LIMIT 10
     ''', args);
+
+    if (rows.isEmpty) {
+      // Fallback: If they ask "explain this image", the literal text might not contain "image".
+      return _getRecentFallback(database);
+    }
+    return rows.map(RagChunk.fromMap).toList();
+  }
+
+  Future<List<RagChunk>> _getRecentFallback(Database database) async {
+    final rows = await database.rawQuery('''
+      SELECT rowid, * FROM rag_chunks 
+      ORDER BY created_at DESC 
+      LIMIT 5
+    ''');
     return rows.map(RagChunk.fromMap).toList();
   }
 

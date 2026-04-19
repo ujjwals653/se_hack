@@ -183,6 +183,16 @@ class ResourceRepository {
     return File(cached.localPath).existsSync();
   }
 
+  /// Saves a locally-picked file directly into the Hive drive (no Supabase).
+  Future<void> saveLocal(CachedResource resource) async {
+    await _cache.put(resource.id, resource);
+  }
+
+  /// Removes a locally-saved file from Hive by id.
+  Future<void> deleteLocal(String id) async {
+    await _cache.delete(id);
+  }
+
   Future<void> _queueForRAG(String localPath, String subject) async {
     final prefs = await SharedPreferences.getInstance();
     final queue = prefs.getStringList('rag_index_queue') ?? [];

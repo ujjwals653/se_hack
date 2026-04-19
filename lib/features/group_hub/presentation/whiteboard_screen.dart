@@ -129,7 +129,7 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
                       child: Container(
                         width: 10000,
                         height: 10000,
-                        color: Colors.grey.shade50,
+                        color: const Color(0xFFF5F5F5),
                         child: CustomPaint(
                           painter: _WhiteboardPainter(
                             strokes: _committedStrokes,

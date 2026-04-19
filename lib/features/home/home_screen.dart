@@ -336,7 +336,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                     ),
                     _buildGridItem(
                       icon: Icons.center_focus_strong_outlined,
-                      title: 'focus Mode',
+                      title: 'Focus Mode',
                       color: const Color(0xFFFFD0FF),
                       iconColor: Colors.purple.shade700,
                       onTap: () {

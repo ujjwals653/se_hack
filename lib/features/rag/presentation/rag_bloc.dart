@@ -23,6 +23,12 @@ class RagDeleteDocument extends RagEvent {
   RagDeleteDocument(this.docId);
 }
 
+class RagIngestLocalFile extends RagEvent {
+  final File file;
+  final String fileName;
+  RagIngestLocalFile(this.file, this.fileName);
+}
+
 class RagLoadDocuments extends RagEvent {}
 
 // ── States ──────────────────────────────────────────────────────────────────
@@ -75,6 +81,7 @@ class RagBloc extends Bloc<RagEvent, RagState> {
   RagBloc(this._service) : super(const RagIdle(documents: [], messages: [])) {
     on<RagLoadDocuments>(_onLoad);
     on<RagIngestFile>(_onIngest);
+    on<RagIngestLocalFile>(_onIngestLocal);
     on<RagAskQuestion>(_onAsk);
     on<RagDeleteDocument>(_onDelete);
     on<_ProgressUpdate>((event, emit) {
@@ -128,6 +135,26 @@ class RagBloc extends Bloc<RagEvent, RagState> {
         messages: state.messages,
         message: 'Failed to ingest "$fileName": $e',
       ));
+    }
+  }
+
+  Future<void> _onIngestLocal(RagIngestLocalFile event, Emitter<RagState> emit) async {
+    final fileName = event.fileName;
+    final isPdf = fileName.toLowerCase().endsWith('.pdf');
+    try {
+      emit(RagIngesting(documents: state.documents, messages: state.messages, done: 0, total: 1, fileName: fileName));
+      final doc = await _service.ingestFile(
+        event.file,
+        isPdf: isPdf,
+        onProgress: (done, total) {
+          if (!isClosed) add(_ProgressUpdate(done, total, fileName));
+        },
+      );
+      final docs = await _service.getDocuments();
+      final newMsg = RagMessage(text: '📂 "$fileName" loaded from Drive — ${doc.chunkCount} chunks indexed.', isUser: false);
+      emit(RagIdle(documents: docs, messages: [...state.messages, newMsg]));
+    } catch (e) {
+      emit(RagError(documents: state.documents, messages: state.messages, message: 'Failed to load "$fileName": $e'));
     }
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:se_hack/features/rag/presentation/rag_bloc.dart';
 
 /// A single chat bubble — styled differently for user vs. bot messages.
@@ -50,14 +51,35 @@ class ChatBubble extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Text(
-                    message.text,
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      color: message.isUser ? Colors.white : const Color(0xFF1F2937),
-                      height: 1.45,
-                    ),
-                  ),
+                  child: message.isUser
+                      ? Text(
+                          message.text,
+                          style: const TextStyle(
+                            fontSize: 14.5,
+                            color: Colors.white,
+                            height: 1.45,
+                          ),
+                        )
+                      : MarkdownBody(
+                          data: message.text,
+                          styleSheet: MarkdownStyleSheet(
+                            p: const TextStyle(
+                              fontSize: 14.5,
+                              color: Color(0xFF1F2937),
+                              height: 1.45,
+                            ),
+                            strong: const TextStyle(
+                              fontSize: 14.5,
+                              color: Color(0xFF1F2937),
+                              fontWeight: FontWeight.bold,
+                              height: 1.45,
+                            ),
+                            listBullet: const TextStyle(
+                              fontSize: 14.5,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
+                        ),
                 ),
                 if (message.sources.isNotEmpty) ...[
                   const SizedBox(height: 4),
