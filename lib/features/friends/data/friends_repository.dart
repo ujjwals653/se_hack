@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_model.dart';
@@ -205,41 +206,67 @@ class FriendsRepository {
   }
 
   /// Streams all pending notifications (friend requests + squad invites).
+  /// Both subcollections are watched as real-time streams so the count
+  /// updates instantly when a request is accepted or dismissed.
   Stream<List<Map<String, dynamic>>> watchAllNotifications() {
-    // Merge friend requests (incoming) and squad invites from notifications subcollection
-    return _db
+    final notifStream = _db
         .collection('users')
         .doc(_uid)
         .collection('notifications')
         .orderBy('createdAt', descending: true)
-        .snapshots()
-        .asyncMap((notifSnap) async {
+        .snapshots();
+
+    final friendReqStream = _db
+        .collection('users')
+        .doc(_uid)
+        .collection('friendRequests')
+        .where('type', isEqualTo: 'incoming')
+        .snapshots();
+
+    // CombineLatest: cache the latest snapshot from each stream,
+    // emit a merged list whenever either changes.
+    QuerySnapshot? latestNotif;
+    QuerySnapshot? latestFriendReq;
+
+    List<Map<String, dynamic>> _merge() {
       final notifications = <Map<String, dynamic>>[];
 
-      // Squad invites from notifications collection
-      for (final doc in notifSnap.docs) {
-        notifications.add({'id': doc.id, ...doc.data()});
+      if (latestNotif != null) {
+        for (final doc in latestNotif!.docs) {
+          notifications.add({'id': doc.id, ...doc.data() as Map<String, dynamic>});
+        }
       }
-
-      // Friend requests
-      final friendReqSnap = await _db
-          .collection('users')
-          .doc(_uid)
-          .collection('friendRequests')
-          .where('type', isEqualTo: 'incoming')
-          .get();
-      for (final doc in friendReqSnap.docs) {
-        // Spread FIRST so our 'type' key overrides the Firestore 'type: incoming'
-        notifications.add({
-          ...doc.data(),
-          'id': doc.id,
-          'type': 'friendRequest',
-          'uid': doc.id,
-        });
+      if (latestFriendReq != null) {
+        for (final doc in latestFriendReq!.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          notifications.add({
+            ...data,
+            'id': doc.id,
+            'type': 'friendRequest',
+            'uid': doc.id,
+          });
+        }
       }
-
       return notifications;
+    }
+
+    final controller = StreamController<List<Map<String, dynamic>>>.broadcast();
+
+    final sub1 = notifStream.listen((snap) {
+      latestNotif = snap;
+      if (latestFriendReq != null) controller.add(_merge());
     });
+    final sub2 = friendReqStream.listen((snap) {
+      latestFriendReq = snap;
+      if (latestNotif != null) controller.add(_merge());
+    });
+
+    controller.onCancel = () {
+      sub1.cancel();
+      sub2.cancel();
+    };
+
+    return controller.stream;
   }
 
   /// Accept a squad invite — calls joinSquad logic directly.
