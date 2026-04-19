@@ -7,6 +7,7 @@ class RagChunk {
   final String text;
   final String sourceName;
   final int createdAt;
+  final List<double> embedding;
 
   const RagChunk({
     this.id,
@@ -15,6 +16,7 @@ class RagChunk {
     required this.text,
     required this.sourceName,
     required this.createdAt,
+    this.embedding = const [],
   });
 
   Map<String, dynamic> toMap() => {
