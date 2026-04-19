@@ -196,8 +196,8 @@ class HomeScreen extends StatelessWidget {
                   onTap: () => context.push('/timetable'),
                 ),
                 _buildGridCard(
-                  title: 'Tracker',
-                  value: 'Attendance',
+                  title: 'Attendance',
+                  value: 'Details',
                   color: const Color(0xFF43E0A3),
                   icon: Icons.how_to_reg_rounded,
                   onTap: () => context.push('/attendance'),

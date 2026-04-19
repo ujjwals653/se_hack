@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:se_hack/features/timetable/data/timetable_repository.dart' as se_hack_timetable_repo;
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:se_hack/features/attendance/domain/attendance_service.dart';
@@ -14,6 +16,12 @@ class AttendanceScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final attService = context.watch<AttendanceService>();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && attService.stats.isEmpty) { // Optional safety
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        attService.initialize(user.uid);
+      });
+    }
     final statsList = attService.stats.values.toList();
 
     return Scaffold(
@@ -42,7 +50,60 @@ class AttendanceScreen extends StatelessWidget {
         ],
       ),
       body: statsList.isEmpty
-          ? const Center(child: Text("No attendance data found. Please set up your Timetable."))
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("No synced attendance data found.", style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 16, color: Colors.black)),
+                  const SizedBox(height: 8),
+                  Text("The database has 0 linked subjects.", style: GoogleFonts.inter(color: Colors.grey)),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      try {
+                        final uid = FirebaseAuth.instance.currentUser?.uid;
+                        if (uid != null) {
+                          final repo = se_hack_timetable_repo.TimetableRepository();
+                          final tt = await repo.getTimetable(uid);
+                          if (tt != null) {
+                            int totalEntries = 0;
+                            final unique = <String>{};
+                            for (final list in tt.days.values) {
+                              totalEntries += list.length;
+                              for (var e in list) {
+                                if (!e.isFree && e.subject.isNotEmpty) {
+                                  unique.add(e.subject);
+                                }
+                              }
+                            }
+                            
+                            if (totalEntries == 0) {
+                              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Timetable is empty! Re-upload it.')));
+                              return;
+                            }
+                            if (unique.isEmpty) {
+                              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Found $totalEntries entries but ALL are free/empty! None to sync.')));
+                              return;
+                            }
+                            
+                            await attService.seedSubjectsFromTimetable(tt);
+                            await attService.refreshSubjectCounts();
+                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync successful! Linked ${unique.length} subjects.')));
+                          } else {
+                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No timetable found in the database. Please save one first.')));
+                          }
+                        }
+                      } catch (e) {
+                         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync failed: $e')));
+                      }
+                    },
+                    icon: const Icon(Icons.sync, color: Colors.white),
+                    label: const Text('Force Sync From Timetable', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7B61FF)),
+                  ),
+                ],
+              ),
+            )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: statsList.length,
@@ -200,43 +261,53 @@ class _SubjectCardState extends State<_SubjectCard> {
   @override
   Widget build(BuildContext context) {
     Color statusColor;
-    if (widget.stat.riskStatus == 'safe') statusColor = Colors.green;
-    else if (widget.stat.riskStatus == 'warning') statusColor = Colors.orange;
-    else statusColor = Colors.red;
+    if (widget.stat.riskStatus == 'safe') statusColor = const Color(0xFF43E0A3);
+    else if (widget.stat.riskStatus == 'warning') statusColor = const Color(0xFFFFAB61);
+    else statusColor = const Color(0xFFFF527A);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 2,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          tilePadding: const EdgeInsets.all(16),
+          tilePadding: const EdgeInsets.all(20),
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
                   widget.stat.subjectName,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+                  style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: const Color(0xFF1A1A2E)),
                 ),
               ),
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.refresh, size: 20, color: Colors.grey),
+                    icon: const Icon(Icons.refresh_rounded, size: 20, color: Colors.grey),
                     tooltip: 'Reset Attendance',
                     onPressed: () => widget.attService.resetAttendance(widget.stat.subjectId),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '${widget.stat.currentPercentage.toStringAsFixed(1)}%',
-                      style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.inter(color: statusColor, fontWeight: FontWeight.w700, fontSize: 13),
                     ),
                   ),
                 ],
@@ -246,48 +317,52 @@ class _SubjectCardState extends State<_SubjectCard> {
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               LinearProgressIndicator(
                 value: widget.stat.conducted > 0 ? widget.stat.currentPercentage / 100 : 0,
-                backgroundColor: Colors.grey.shade200,
+                backgroundColor: Colors.grey.shade100,
                 valueColor: AlwaysStoppedAnimation<Color>(statusColor),
-                minHeight: 8,
-                borderRadius: BorderRadius.circular(4),
+                minHeight: 6,
+                borderRadius: BorderRadius.circular(3),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildTappableStat('Attended', widget.stat.attended.toString(), onTap: _editAttended),
                   _buildTappableStat('Absent', widget.stat.absent.toString(), onTap: _editAbsent),
-                  _buildMiniStat('Can Bunk', widget.stat.canBunk.toString(), color: widget.stat.canBunk > 0 ? Colors.green : Colors.red),
+                  _buildMiniStat('Can Bunk', widget.stat.canBunk.toString(), color: widget.stat.canBunk > 0 ? const Color(0xFF43E0A3) : const Color(0xFFFF527A)),
                   _buildMiniStat('Still Needed', widget.stat.classesStillNeeded.toString()),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () => _markAndShowError('present'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade50,
-                        foregroundColor: Colors.green.shade700,
+                        backgroundColor: const Color(0xFF43E0A3).withOpacity(0.15),
+                        foregroundColor: const Color(0xFF28B47C),
                         elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Present'),
+                      child: Text('Present', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () => _markAndShowError('absent'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade50,
-                        foregroundColor: Colors.red.shade700,
+                        backgroundColor: const Color(0xFFFF527A).withOpacity(0.15),
+                        foregroundColor: const Color(0xFFD43156),
                         elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Absent'),
+                      child: Text('Absent', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],
@@ -296,52 +371,68 @@ class _SubjectCardState extends State<_SubjectCard> {
           ),
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Divider(),
+                  const Divider(height: 32, color: Color(0xFFEAEAEE)),
+                  Text('Compulsory Percentage', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.grey.shade500)),
                   const SizedBox(height: 8),
-                  const Text('Required Percentage Target', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
                   Row(
                     children: [
-                      Text('${_localSliderValue.toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       Expanded(
-                        child: Slider(
-                          value: _localSliderValue,
-                          min: 0,
-                          max: 100,
-                          divisions: 20,
-                          label: '${_localSliderValue.toInt()}%',
-                          onChanged: (val) {
-                            setState(() => _localSliderValue = val);
-                          },
-                          onChangeEnd: (val) {
-                            widget.attService.setCompulsoryPercentage(widget.stat.subjectId, val);
-                          },
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            activeTrackColor: const Color(0xFF7B61FF),
+                            inactiveTrackColor: const Color(0xFF7B61FF).withOpacity(0.2),
+                            thumbColor: const Color(0xFF7B61FF),
+                            overlayColor: const Color(0xFF7B61FF).withOpacity(0.1),
+                          ),
+                          child: Slider(
+                            value: _localSliderValue,
+                            min: 0,
+                            max: 100,
+                            divisions: 20,
+                            label: '${_localSliderValue.toInt()}%',
+                            onChanged: (val) {
+                              setState(() => _localSliderValue = val);
+                            },
+                            onChangeEnd: (val) {
+                              widget.attService.setCompulsoryPercentage(widget.stat.subjectId, val);
+                            },
+                          ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  Text('Quick Setup', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.grey.shade500)),
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
-                    children: [60, 70, 75, 80, 85, 90].map((preset) => ActionChip(
-                      label: Text('$preset%'),
+                    children: [60, 70, 75, 80, 85].map((preset) => ActionChip(
+                      label: Text('$preset%', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: const Color(0xFF7B61FF))),
+                      backgroundColor: const Color(0xFF7B61FF).withOpacity(0.1),
+                      side: BorderSide.none,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       onPressed: () {
                         setState(() => _localSliderValue = preset.toDouble());
                         widget.attService.setCompulsoryPercentage(widget.stat.subjectId, preset.toDouble());
                       },
                     )).toList(),
                   ),
-                  const SizedBox(height: 16),
-                  const Text('Detailed Breakdown', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Tap a value to edit manually',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Detailed Breakdown', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.grey.shade500)),
+                      Text(
+                        'Tap value to edit',
+                        style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade400, fontStyle: FontStyle.italic),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   _buildEditableRow(
                     'Total Planned (Semester)',
                     widget.stat.totalPlanned.toString(),
@@ -353,21 +444,20 @@ class _SubjectCardState extends State<_SubjectCard> {
                     'Attended',
                     widget.stat.attended.toString(),
                     onTap: _editAttended,
-                    color: Colors.green,
+                    color: const Color(0xFF28B47C),
                     icon: Icons.edit_outlined,
                   ),
                   _buildEditableRow(
                     'Absent (Bunked)',
                     widget.stat.absent.toString(),
                     onTap: _editAbsent,
-                    color: Colors.red,
+                    color: const Color(0xFFD43156),
                     icon: Icons.edit_outlined,
                   ),
                   _buildDetailRow('Remaining Classes', widget.stat.remaining.toString()),
                   _buildDetailRow('Total Bunk Budget', widget.stat.totalBunkBudget.toString()),
-                  _buildDetailRow('Can Still Bunk', widget.stat.canBunk.toString(), color: widget.stat.canBunk > 0 ? Colors.green : Colors.red, isBold: true),
-                  _buildDetailRow('Must Still Attend', widget.stat.classesStillNeeded.toString(), color: Colors.deepOrange, isBold: true),
-                  const SizedBox(height: 16),
+                  _buildDetailRow('Can Still Bunk', widget.stat.canBunk.toString(), color: widget.stat.canBunk > 0 ? const Color(0xFF28B47C) : const Color(0xFFD43156), isBold: true),
+                  _buildDetailRow('Must Still Attend', widget.stat.classesStillNeeded.toString(), color: const Color(0xFFFFAB61), isBold: true),
                 ],
               ),
             ),

@@ -216,6 +216,9 @@ class TimetableBloc extends Bloc<TimetableEvent, TimetableState> {
       );
       await _repository.saveTimetable(event.userId, updated);
       emit(TimetableLoaded(updated));
+      
+      // Seed subjects into DB so AttendanceService knows they exist
+      await _attendanceService.seedSubjectsFromTimetable(updated);
       _attendanceService.refreshSubjectCounts();
     } catch (e) {
       emit(TimetableError('Failed to save timetable: $e'));
