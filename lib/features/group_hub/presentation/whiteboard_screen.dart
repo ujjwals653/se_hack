@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'dart:async';
 import 'dart:ui';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
 import '../data/squad_repository.dart';
@@ -33,9 +34,13 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
   static const Color _accent = Color(0xFF7B61FF);
 
   // Tools
-  String _activeTool = 'pen'; // 'pen', 'highlighter', 'eraser', 'rectangle', 'circle', 'line', 'sticky'
+  String _activeTool = 'pen';
   Color _penColor = const Color(0xFF4C4D7B);
   double _strokeWidth = 4.0;
+  double _eraserWidth = 20.0;
+
+  // Local undo stack — stores Firestore doc IDs of committed strokes
+  final List<String> _myStrokeIds = [];
 
   // Local drawing state for zero latency
   WhiteboardStroke? _currentStroke;
@@ -56,6 +61,27 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
     const Color(0xFFFFFFFF), // white
   ];
 
+  // Committed strokes from Firestore — updated via stream subscription
+  List<WhiteboardStroke> _committedStrokes = [];
+  StreamSubscription<List<WhiteboardStroke>>? _strokesSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _strokesSub = widget.repo
+        .watchStrokes(widget.squadId, widget.whiteboardId)
+        .listen((strokes) {
+      if (mounted) setState(() => _committedStrokes = strokes);
+    });
+  }
+
+  @override
+  void dispose() {
+    _strokesSub?.cancel();
+    _transformCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,15 +98,14 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.undo),
-            tooltip: 'Undo last stroke',
-            onPressed: () => widget.repo.undoLastStroke(widget.squadId, widget.whiteboardId),
+            tooltip: 'Undo my last stroke',
+            onPressed: _myStrokeIds.isEmpty ? null : _undoLocal,
           ),
-          if (widget.myRole.canManageWhiteboard)
-            IconButton(
-              icon: const Icon(Icons.delete_sweep, color: Colors.redAccent),
-              tooltip: 'Clear board',
-              onPressed: () => _confirmClearBoard(),
-            ),
+          IconButton(
+            icon: const Icon(Icons.delete_sweep, color: Colors.redAccent),
+            tooltip: 'Clear board',
+            onPressed: () => _confirmClearBoard(),
+          ),
         ],
       ),
       body: Column(
@@ -90,10 +115,10 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
             child: ClipRect(
               child: Stack(
                 children: [
-                  // Infinite panning canvas
+                  // Infinite panning canvas — repaints on every setState call
                   InteractiveViewer(
                     transformationController: _transformCtrl,
-                    constrained: false, // Infinite canvas
+                    constrained: false,
                     minScale: 0.1,
                     maxScale: 5.0,
                     child: GestureDetector(
@@ -104,19 +129,13 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
                       child: Container(
                         width: 10000,
                         height: 10000,
-                        color: Colors.grey.shade50, // very light grid could go here
-                        child: StreamBuilder<List<WhiteboardStroke>>(
-                          stream: widget.repo.watchStrokes(widget.squadId, widget.whiteboardId),
-                          builder: (context, snapshot) {
-                            final strokes = snapshot.data ?? [];
-                            return CustomPaint(
-                              painter: _WhiteboardPainter(
-                                strokes: strokes,
-                                current: _currentStroke,
-                              ),
-                              size: const Size(10000, 10000),
-                            );
-                          },
+                        color: Colors.grey.shade50,
+                        child: CustomPaint(
+                          painter: _WhiteboardPainter(
+                            strokes: _committedStrokes,
+                            current: _currentStroke,
+                          ),
+                          size: const Size(10000, 10000),
                         ),
                       ),
                     ),
@@ -205,11 +224,17 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
                   SizedBox(
                     width: 100,
                     child: Slider(
-                      value: _strokeWidth,
-                      min: 1,
-                      max: 20,
+                      value: _activeTool == 'eraser' ? _eraserWidth : _strokeWidth,
+                      min: _activeTool == 'eraser' ? 5 : 1,
+                      max: _activeTool == 'eraser' ? 60 : 20,
                       activeColor: _primary,
-                      onChanged: (v) => setState(() => _strokeWidth = v),
+                      onChanged: (v) => setState(() {
+                        if (_activeTool == 'eraser') {
+                          _eraserWidth = v;
+                        } else {
+                          _strokeWidth = v;
+                        }
+                      }),
                     ),
                   ),
                 ]
@@ -264,8 +289,12 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
       _currentStroke = WhiteboardStroke(
         id: '', // Empty until sent
         points: [pos],
-        color: _activeTool == 'eraser' ? 0xFFFAFAFA : _penColor.value,
-        width: _activeTool == 'highlighter' ? (_strokeWidth * 3) : _activeTool == 'eraser' ? 20.0 : _strokeWidth,
+        color: _activeTool == 'eraser' ? 0xFFF5F5F5 : _penColor.value,
+        width: _activeTool == 'highlighter'
+            ? (_strokeWidth * 3)
+            : _activeTool == 'eraser'
+                ? _eraserWidth
+                : _strokeWidth,
         tool: _activeTool,
         uid: widget.uid,
         createdAt: DateTime.now(),
@@ -288,10 +317,18 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
     final strokeToSave = _currentStroke!;
     setState(() => _currentStroke = null);
 
-    // Save to Firestore
-    await widget.repo.addStroke(widget.squadId, widget.whiteboardId, strokeToSave);
+    // Save to Firestore and capture the doc ID for local undo
+    final docId = await widget.repo.addStrokeGetId(
+        widget.squadId, widget.whiteboardId, strokeToSave);
+    if (docId != null) setState(() => _myStrokeIds.add(docId));
   }
 
+  void _undoLocal() {
+    if (_myStrokeIds.isEmpty) return;
+    final lastId = _myStrokeIds.removeLast();
+    setState(() {}); // update undo button disabled state
+    widget.repo.deleteStrokeById(widget.squadId, widget.whiteboardId, lastId);
+  }
   void _handleTapUpSticky(TapUpDetails details) async {
     if (_activeTool != 'sticky') return;
 

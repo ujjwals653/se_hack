@@ -592,6 +592,32 @@ class SquadRepository {
         .add(stroke.toMap());
   }
 
+  /// Saves a stroke and returns its Firestore document ID (for local undo).
+  Future<String?> addStrokeGetId(String squadId, String whiteboardId, WhiteboardStroke stroke) async {
+    try {
+      final ref = await _db
+          .collection('squads')
+          .doc(squadId)
+          .collection('whiteboards')
+          .doc(whiteboardId)
+          .collection('strokes')
+          .add(stroke.toMap());
+      return ref.id;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Deletes a specific stroke by its doc ID — used for local undo.
+  Future<void> deleteStrokeById(String squadId, String whiteboardId, String strokeId) => _db
+      .collection('squads')
+      .doc(squadId)
+      .collection('whiteboards')
+      .doc(whiteboardId)
+      .collection('strokes')
+      .doc(strokeId)
+      .delete();
+
   Future<void> undoLastStroke(String squadId, String whiteboardId) async {
     final snap = await _db
         .collection('squads')
