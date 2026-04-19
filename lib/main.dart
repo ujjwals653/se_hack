@@ -20,6 +20,8 @@ import 'package:se_hack/features/resources/models/cached_resource.dart';
 
 import 'package:se_hack/core/services/notification_service.dart';
 
+final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -79,6 +81,7 @@ class MainApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => FocusService()),
       ],
       child: MaterialApp(
+        navigatorKey: globalNavigatorKey,
         debugShowCheckedModeBanner: false,
         title: 'Lumina',
         theme: ThemeData(

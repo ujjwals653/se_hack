@@ -69,7 +69,10 @@ class _SquadChatScreenState extends State<SquadChatScreen>
 
   Future<void> _send() async {
     final text = _msgCtrl.text.trim();
-    if (text.isEmpty && _msgType != MessageType.image && _msgType != MessageType.file) return;
+    if (text.isEmpty &&
+        _msgType != MessageType.image &&
+        _msgType != MessageType.file)
+      return;
     setState(() => _sending = true);
     _msgCtrl.clear();
     try {
@@ -78,7 +81,9 @@ class _SquadChatScreenState extends State<SquadChatScreen>
       setState(() => _msgType = MessageType.text); // reset type
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
     if (mounted) setState(() => _sending = false);
@@ -102,7 +107,9 @@ class _SquadChatScreenState extends State<SquadChatScreen>
       _scrollToBottom();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload Error: $e')));
       }
     }
     if (mounted) setState(() => _sending = false);
@@ -120,7 +127,7 @@ class _SquadChatScreenState extends State<SquadChatScreen>
     final tags = await showModalBottomSheet<Map<String, String>>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _ResourceTagSheetDummy(), 
+      builder: (_) => _ResourceTagSheetDummy(),
     );
     if (tags == null) return;
 
@@ -132,7 +139,7 @@ class _SquadChatScreenState extends State<SquadChatScreen>
         subject: tags['subject']!,
         semester: tags['semester']!,
       );
-      
+
       await widget.repo.sendMessage(
         widget.squadId,
         MessageType.file,
@@ -144,7 +151,9 @@ class _SquadChatScreenState extends State<SquadChatScreen>
       _scrollToBottom();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload Error: $e')));
       }
     }
     if (mounted) setState(() => _sending = false);
@@ -279,7 +288,7 @@ class _SquadChatScreenState extends State<SquadChatScreen>
                   12,
                   8,
                   12,
-                  MediaQuery.of(context).viewInsets.bottom > 0 ? 12 : 100,
+                  MediaQuery.of(context).viewInsets.bottom > 0 ? 12 : 16,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -312,7 +321,10 @@ class _SquadChatScreenState extends State<SquadChatScreen>
                                 : null,
                             decoration: InputDecoration(
                               prefixIcon: IconButton(
-                                icon: const Icon(Icons.attach_file, color: Colors.grey),
+                                icon: const Icon(
+                                  Icons.attach_file,
+                                  color: Colors.grey,
+                                ),
                                 onPressed: _showAttachmentOptions,
                               ),
                               hintText: _msgType == MessageType.code
@@ -332,7 +344,7 @@ class _SquadChatScreenState extends State<SquadChatScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      // const SizedBox(width: 8),
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         width: 46,
@@ -515,49 +527,72 @@ class _MessageBubble extends StatelessWidget {
                               ),
                             ],
                           )
-                        : message.type == MessageType.image && message.fileUrl != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: CachedNetworkImage(
-                                  imageUrl: message.fileUrl!,
-                                  width: 200,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => const SizedBox(
-                                      width: 200, height: 200, child: Center(child: CircularProgressIndicator())),
-                                  errorWidget: (context, url, error) => const Icon(Icons.error),
+                        : message.type == MessageType.image &&
+                              message.fileUrl != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: CachedNetworkImage(
+                              imageUrl: message.fileUrl!,
+                              width: 200,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const SizedBox(
+                                width: 200,
+                                height: 200,
+                                child: Center(
+                                  child: CircularProgressIndicator(),
                                 ),
-                              )
-                        : message.type == MessageType.file && message.fileUrl != null
-                            ? GestureDetector(
-                                onTap: () async {
-                                  final uri = Uri.parse(message.fileUrl!);
-                                  if (await canLaunchUrl(uri)) await launchUrl(uri);
-                                },
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.insert_drive_file, color: isMe ? Colors.white : Colors.grey, size: 28),
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            message.fileName ?? 'Document',
-                                            style: TextStyle(color: isMe ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          if (message.fileSize != null)
-                                            Text(
-                                              '${(message.fileSize! / 1024).toStringAsFixed(1)} KB',
-                                              style: TextStyle(color: isMe ? Colors.white70 : Colors.black54, fontSize: 11),
-                                            ),
-                                        ],
+                              ),
+                              errorWidget: (context, url, error) =>
+                                  const Icon(Icons.error),
+                            ),
+                          )
+                        : message.type == MessageType.file &&
+                              message.fileUrl != null
+                        ? GestureDetector(
+                            onTap: () async {
+                              final uri = Uri.parse(message.fileUrl!);
+                              if (await canLaunchUrl(uri)) await launchUrl(uri);
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.insert_drive_file,
+                                  color: isMe ? Colors.white : Colors.grey,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        message.fileName ?? 'Document',
+                                        style: TextStyle(
+                                          color: isMe
+                                              ? Colors.white
+                                              : Colors.black87,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    )
-                                  ],
+                                      if (message.fileSize != null)
+                                        Text(
+                                          '${(message.fileSize! / 1024).toStringAsFixed(1)} KB',
+                                          style: TextStyle(
+                                            color: isMe
+                                                ? Colors.white70
+                                                : Colors.black54,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                              )
+                              ],
+                            ),
+                          )
                         : Text(
                             message.content,
                             style: TextStyle(
@@ -803,7 +838,10 @@ class _ResourceTagSheetDummyState extends State<_ResourceTagSheetDummy> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Tag Document', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const Text(
+              'Tag Document',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
             const SizedBox(height: 14),
             Row(
               children: [
@@ -811,7 +849,9 @@ class _ResourceTagSheetDummyState extends State<_ResourceTagSheetDummy> {
                   child: DropdownButtonFormField<String>(
                     value: _subject,
                     decoration: const InputDecoration(labelText: 'Subject'),
-                    items: _subjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    items: _subjects
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
                     onChanged: (v) => setState(() => _subject = v!),
                   ),
                 ),
@@ -820,7 +860,9 @@ class _ResourceTagSheetDummyState extends State<_ResourceTagSheetDummy> {
                   child: DropdownButtonFormField<String>(
                     value: _semester,
                     decoration: const InputDecoration(labelText: 'Semester'),
-                    items: _semesters.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    items: _semesters
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
                     onChanged: (v) => setState(() => _semester = v!),
                   ),
                 ),
@@ -836,7 +878,10 @@ class _ResourceTagSheetDummyState extends State<_ResourceTagSheetDummy> {
                 ),
                 child: const Text('Confirm & Upload'),
                 onPressed: () {
-                  Navigator.pop(context, {'subject': _subject, 'semester': _semester});
+                  Navigator.pop(context, {
+                    'subject': _subject,
+                    'semester': _semester,
+                  });
                 },
               ),
             ),
@@ -847,4 +892,3 @@ class _ResourceTagSheetDummyState extends State<_ResourceTagSheetDummy> {
     );
   }
 }
-

@@ -42,7 +42,7 @@ class _SquadKanbanScreenState extends State<SquadKanbanScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Team Kanban Board',
+                  'Team Task Board',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -211,7 +211,10 @@ class _KanbanColumnState extends State<_KanbanColumn> {
               GestureDetector(
                 onTap: () => setState(() => _expanded = !_expanded),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: widget.meta.color.withOpacity(0.12),
                     borderRadius: _expanded
@@ -263,7 +266,10 @@ class _KanbanColumnState extends State<_KanbanColumn> {
               // Drop-here hint when dragging over
               if (_isHoveredByDrag)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 10),
@@ -278,7 +284,11 @@ class _KanbanColumnState extends State<_KanbanColumn> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_circle_outline, size: 16, color: widget.meta.color),
+                        Icon(
+                          Icons.add_circle_outline,
+                          size: 16,
+                          color: widget.meta.color,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'Drop here',
@@ -326,7 +336,10 @@ class _KanbanColumnState extends State<_KanbanColumn> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: widget.meta.color, width: 2),
+                              border: Border.all(
+                                color: widget.meta.color,
+                                width: 2,
+                              ),
                             ),
                             child: Text(
                               task.title,

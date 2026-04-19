@@ -22,7 +22,6 @@ import 'package:se_hack/features/timetable/presentation/attendance_screen.dart';
 import 'package:se_hack/features/rag/presentation/rag_screen.dart';
 import 'package:se_hack/features/profile/presentation/badge_store_screen.dart';
 
-
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
   const MainHomeScreen({super.key, required this.user});
@@ -200,7 +199,10 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                       const SizedBox(width: 4),
                       TweenAnimationBuilder<int>(
                         duration: const Duration(seconds: 1),
-                        tween: IntTween(begin: 0, end: context.watch<FocusService>().lifetimePoints),
+                        tween: IntTween(
+                          begin: 0,
+                          end: context.watch<FocusService>().lifetimePoints,
+                        ),
                         builder: (context, value, child) {
                           return Text(
                             value.toString(),
@@ -238,13 +240,13 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
               ),
               children: [
                 const Text(
-                  'My Favourites',
+                  'Dashboard',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                const Text(
-                  'Dashboards',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
+                // const Text(
+                //   'Dashboards',
+                //   style: TextStyle(fontSize: 14, color: Colors.grey),
+                // ),
                 const SizedBox(height: 16),
 
                 // Action Grid
@@ -312,8 +314,8 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => BlocProvider(
-                              create: (_) => CalendarBloc()
-                                ..add(CalendarLoadRequested()),
+                              create: (_) =>
+                                  CalendarBloc()..add(CalendarLoadRequested()),
                               child: const CalendarScreen(),
                             ),
                           ),
@@ -329,7 +331,8 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const se_hack_drive.OfflineDriveScreen(),
+                            builder: (_) =>
+                                const se_hack_drive.OfflineDriveScreen(),
                           ),
                         );
                       },
@@ -356,9 +359,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const RagScreen(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const RagScreen()),
                         );
                       },
                     ),
@@ -898,7 +899,9 @@ class _FriendRequestTileState extends State<_FriendRequestTile> {
 
     final name = widget.notification['displayName'] as String? ?? 'Someone';
     final photoUrl = widget.notification['photoUrl'] as String?;
-    final uid = widget.notification['uid'] as String? ?? widget.notification['id'] as String;
+    final uid =
+        widget.notification['uid'] as String? ??
+        widget.notification['id'] as String;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -962,7 +965,9 @@ class _FriendRequestTileState extends State<_FriendRequestTile> {
                           if (mounted) {
                             setState(() => _isDone = true);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('$name is now your friend!')),
+                              SnackBar(
+                                content: Text('$name is now your friend!'),
+                              ),
                             );
                           }
                         },
