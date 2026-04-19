@@ -212,9 +212,8 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
         _elapsedSeconds++;
 
         // Award 1 point per every full minute elapsed
-        final earnedSoFar = _elapsedSeconds ~/ 60;
-        if (earnedSoFar > _sessionPoints) {
-          _updateSessionPoints(earnedSoFar - _sessionPoints);
+        if (_elapsedSeconds > 0 && _elapsedSeconds % 60 == 0) {
+          _updateSessionPoints(1);
         }
 
         // Every 5 seconds, check the foreground app for penalties
