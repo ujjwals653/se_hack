@@ -191,53 +191,66 @@ class _WhiteboardScreenState extends State<WhiteboardScreen> {
               ],
             ),
           ),
-          if (_activeTool != 'eraser') ...[
+          if (_activeTool != 'sticky') ...[
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _palette.map((c) => GestureDetector(
-                        onTap: () => setState(() => _penColor = c),
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: c,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _penColor == c ? _accent : Colors.grey.shade300,
-                              width: _penColor == c ? 2.5 : 1,
+                if (_activeTool != 'eraser')
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: _palette.map((c) => GestureDetector(
+                          onTap: () => setState(() => _penColor = c),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: c,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: _penColor == c ? _accent : Colors.grey.shade300,
+                                width: _penColor == c ? 2.5 : 1,
+                              ),
                             ),
                           ),
-                        ),
-                      )).toList(),
+                        )).toList(),
+                      ),
                     ),
+                  )
+                else
+                  // Eraser label placeholder so the slider sits nicely
+                  const Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.cleaning_services, size: 16, color: Colors.grey),
+                        SizedBox(width: 6),
+                        Text('Eraser', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                const SizedBox(width: 12),
+                Text(
+                  'Size: ${(_activeTool == 'eraser' ? _eraserWidth : _strokeWidth).toInt()}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                SizedBox(
+                  width: 110,
+                  child: Slider(
+                    value: _activeTool == 'eraser' ? _eraserWidth : _strokeWidth,
+                    min: _activeTool == 'eraser' ? 5 : 1,
+                    max: _activeTool == 'eraser' ? 60 : 20,
+                    activeColor: _activeTool == 'eraser' ? Colors.redAccent : _primary,
+                    onChanged: (v) => setState(() {
+                      if (_activeTool == 'eraser') {
+                        _eraserWidth = v;
+                      } else {
+                        _strokeWidth = v;
+                      }
+                    }),
                   ),
                 ),
-                if (_activeTool != 'sticky') ...[
-                  const SizedBox(width: 12),
-                  const Text('Size:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  SizedBox(
-                    width: 100,
-                    child: Slider(
-                      value: _activeTool == 'eraser' ? _eraserWidth : _strokeWidth,
-                      min: _activeTool == 'eraser' ? 5 : 1,
-                      max: _activeTool == 'eraser' ? 60 : 20,
-                      activeColor: _primary,
-                      onChanged: (v) => setState(() {
-                        if (_activeTool == 'eraser') {
-                          _eraserWidth = v;
-                        } else {
-                          _strokeWidth = v;
-                        }
-                      }),
-                    ),
-                  ),
-                ]
               ],
             )
           ]
