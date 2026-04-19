@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import '../../auth/auth_bloc.dart';
 import '../../../core/models/app_user.dart';
+import '../../../core/services/theme_service.dart';
 import '../data/profile_repository.dart';
 import '../models/user_profile_model.dart';
 import '../../friends/models/friend_model.dart';
@@ -27,15 +29,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'My Profile',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
+          ),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        foregroundColor: isDark ? Colors.white : Colors.black,
         elevation: 0,
         actions: [
           IconButton(
@@ -89,7 +97,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 color: _getStatusColor(profile.status),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white,
+                                  color: isDark
+                                      ? const Color(0xFF1E1E1E)
+                                      : Colors.white,
                                   width: 3,
                                 ),
                               ),
@@ -100,9 +110,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 12),
                       Text(
                         profile.displayName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -110,7 +121,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         profile.bio,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade600,
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -145,22 +158,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
 
                 const SizedBox(height: 24),
-                const Divider(),
+                Divider(
+                  color: isDark ? Colors.grey.shade800 : null,
+                ),
                 const SizedBox(height: 16),
 
                 // Badges section
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
                     'Achievements',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 profile.badges.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text("No badges earned yet. Keep going!"),
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          "No badges earned yet. Keep going!",
+                          style: TextStyle(
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.black87,
+                          ),
+                        ),
                       )
                     : SizedBox(
                         height: 110,
@@ -176,11 +202,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 24),
 
                 // Chart section
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
                     'Points History',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -198,53 +228,104 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showSettings(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.palette),
-            title: const Text('Theme settings'),
-            onTap: () {}, // placeholder
-          ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Edit profile info'),
-            onTap: () {}, // placeholder
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Logout', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              showDialog(
-                context: ctx,
-                builder: (c) => AlertDialog(
-                  title: const Text('Logout?'),
-                  content: const Text('Are you sure you want to log out?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(c),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(c);
-                        Navigator.pop(ctx);
-                        context.read<AuthBloc>().add(AuthSignOutRequested());
-                      },
-                      child: const Text(
-                        'Logout',
-                        style: TextStyle(color: Colors.red),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF1E1E1E)
+          : null,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final themeNotifier = context.read<ThemeNotifier>();
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey.shade600 : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              secondary: Icon(
+                isDark ? Icons.dark_mode : Icons.light_mode,
+                color: isDark ? Colors.amber : Colors.grey.shade700,
+              ),
+              title: Text(
+                'Dark mode',
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              value: isDark,
+              activeColor: _accent,
+              onChanged: (_) {
+                themeNotifier.toggle();
+                Navigator.pop(ctx);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.person,
+                color: isDark ? Colors.white70 : null,
+              ),
+              title: Text(
+                'Edit profile info',
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              onTap: () {}, // placeholder
+            ),
+            Divider(color: isDark ? Colors.grey.shade800 : null),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Logout', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                showDialog(
+                  context: ctx,
+                  builder: (c) => AlertDialog(
+                    backgroundColor: isDark ? const Color(0xFF2A2A2A) : null,
+                    title: Text(
+                      'Logout?',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
                       ),
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-        ],
-      ),
+                    content: Text(
+                      'Are you sure you want to log out?',
+                      style: TextStyle(
+                        color: isDark ? Colors.grey.shade300 : Colors.black87,
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(c),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(c);
+                          Navigator.pop(ctx);
+                          context.read<AuthBloc>().add(AuthSignOutRequested());
+                        },
+                        child: const Text(
+                          'Logout',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        );
+      },
     );
   }
 
@@ -273,10 +354,12 @@ class _StatusSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -297,7 +380,11 @@ class _StatusSelector extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.white : Colors.grey.shade600,
+                  color: isSelected
+                      ? Colors.white
+                      : isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade600,
                 ),
               ),
             ),
@@ -317,15 +404,27 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       children: [
         Text(icon, style: const TextStyle(fontSize: 22)),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: isDark ? Colors.white : Colors.black,
+          ),
         ),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        Text(
+          label,
+          style: TextStyle(
+            color: isDark ? Colors.grey.shade500 : Colors.grey,
+            fontSize: 12,
+          ),
+        ),
       ],
     );
   }
@@ -354,6 +453,7 @@ class _BadgeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final info = _badgeInfo[badgeId];
     final icon  = info?['icon']  ?? '🎖️';
     final label = info?['label'] ?? badgeId;
@@ -362,11 +462,13 @@ class _BadgeCard extends StatelessWidget {
       width: 90,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF0C0),
+        color: isDark ? const Color(0xFF2A2518) : const Color(0xFFFFF0C0),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.amber.withOpacity(0.15),
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.amber.withOpacity(0.15),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -382,10 +484,10 @@ class _BadgeCard extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: isDark ? Colors.amber.shade200 : Colors.black87,
             ),
           ),
         ],
@@ -401,6 +503,8 @@ class _PointsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return StreamBuilder<Map<DateTime, int>>(
       stream: ProfileRepository().watchActivityLog(uid),
       builder: (ctx, snap) {
@@ -410,7 +514,17 @@ class _PointsChart extends StatelessWidget {
         
         final log = snap.data!;
         if (log.isEmpty) {
-          return const SizedBox(height: 180, child: Center(child: Text('No points history yet!')));
+          return SizedBox(
+            height: 180,
+            child: Center(
+              child: Text(
+                'No points history yet!',
+                style: TextStyle(
+                  color: isDark ? Colors.grey.shade400 : Colors.black87,
+                ),
+              ),
+            ),
+          );
         }
 
         // Sort keys explicitly
@@ -435,16 +549,21 @@ class _PointsChart extends StatelessWidget {
           padding: const EdgeInsets.only(right: 24, left: 8, top: 24, bottom: 12),
           margin: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(
+              color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+            ),
           ),
           child: LineChart(
             LineChartData(
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
-                getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade100, strokeWidth: 1),
+                getDrawingHorizontalLine: (value) => FlLine(
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                  strokeWidth: 1,
+                ),
               ),
               titlesData: FlTitlesData(
                 show: true,
@@ -455,7 +574,14 @@ class _PointsChart extends StatelessWidget {
                   sideTitles: SideTitles(
                     showTitles: true,
                     getTitlesWidget: (value, meta) {
-                      return Text(value.toInt().toString(), style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold));
+                      return Text(
+                        value.toInt().toString(),
+                        style: TextStyle(
+                          color: isDark ? Colors.grey.shade500 : Colors.grey,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
                     },
                     reservedSize: 36,
                   ),
@@ -476,7 +602,7 @@ class _PointsChart extends StatelessWidget {
                   dotData: FlDotData(show: true),
                   belowBarData: BarAreaData(
                     show: true,
-                    color: const Color(0xFF7B61FF).withOpacity(0.15),
+                    color: const Color(0xFF7B61FF).withOpacity(isDark ? 0.25 : 0.15),
                   ),
                 ),
               ],
@@ -487,4 +613,3 @@ class _PointsChart extends StatelessWidget {
     );
   }
 }
-

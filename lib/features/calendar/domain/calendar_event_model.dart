@@ -8,6 +8,7 @@ class CalendarEventModel {
   final String? location;
   final String? colorHex;
   final List<String>? recurrenceRule;
+  final String? recurringEventId;
 
   const CalendarEventModel({
     required this.id,
@@ -19,7 +20,12 @@ class CalendarEventModel {
     this.location,
     this.colorHex,
     this.recurrenceRule,
+    this.recurringEventId,
   });
+
+  bool get isRecurring =>
+      recurringEventId != null ||
+      (recurrenceRule != null && recurrenceRule!.isNotEmpty);
 
   /// Whether this event falls on (or spans across) the given date.
   bool occursOn(DateTime date) {

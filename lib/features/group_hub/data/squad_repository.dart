@@ -324,6 +324,21 @@ class SquadRepository {
       .snapshots()
       .map((s) => s.docs.map(ChatMessage.fromDoc).toList());
 
+  Future<void> deleteMessage(String squadId, String messageId) async {
+    await _db
+        .collection('squads')
+        .doc(squadId)
+        .collection('chat')
+        .doc(messageId)
+        .update({
+      'isDeleted': true,
+      'content': '🚫 This message was deleted',
+      'fileUrl': null,
+      'fileName': null,
+      'fileSize': null,
+    });
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // KANBAN
   // ═══════════════════════════════════════════════════════════════════════════

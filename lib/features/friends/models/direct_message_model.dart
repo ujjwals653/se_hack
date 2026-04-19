@@ -7,6 +7,7 @@ class DirectMessage {
   final String text;
   final DateTime timestamp;
   final MessageType type;
+  final bool isDeleted;
   
   // File attachments
   final String? fileUrl;
@@ -19,6 +20,7 @@ class DirectMessage {
     required this.text,
     required this.timestamp,
     required this.type,
+    this.isDeleted = false,
     this.fileUrl,
     this.fileName,
     this.fileSize,
@@ -35,6 +37,7 @@ class DirectMessage {
         (e) => e.name == (data['type'] ?? 'text'),
         orElse: () => MessageType.text,
       ),
+      isDeleted: data['isDeleted'] ?? false,
       fileUrl: data['fileUrl'],
       fileName: data['fileName'],
       fileSize: (data['fileSize'] as num?)?.toInt(),

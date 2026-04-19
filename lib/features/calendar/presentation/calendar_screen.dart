@@ -421,6 +421,56 @@ class _CalendarScreenState extends State<CalendarScreen>
         padding: const EdgeInsets.only(right: 20),
         child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
       ),
+      confirmDismiss: (direction) async {
+        if (!event.isRecurring) return true;
+
+        final bool? deleteSeries = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Repeating Task'),
+            content: const Text(
+              'Do you want to delete only this instance or all repeating instances?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, null),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.inter(color: Colors.grey),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(
+                  'Only this',
+                  style: GoogleFonts.inter(color: _accent),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(
+                  'All events',
+                  style: GoogleFonts.inter(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        if (deleteSeries == null) return false;
+
+        if (deleteSeries == true) {
+          context.read<CalendarBloc>().add(
+            CalendarEventDeleteRequested(event.recurringEventId!),
+          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Series deleted')));
+          return false; // Handled here, let bloc rebuild the list
+        }
+
+        return true; // Let onDismissed handle single instance
+      },
       onDismissed: (direction) {
         context.read<CalendarBloc>().add(
           CalendarEventDeleteRequested(event.id),
@@ -476,13 +526,27 @@ class _CalendarScreenState extends State<CalendarScreen>
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              event.title,
-                              style: GoogleFonts.inter(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1A1A2E),
-                              ),
+                            child: Row(
+                              children: [
+                                if (event.isRecurring) ...[
+                                  Icon(
+                                    Icons.repeat,
+                                    size: 14,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Flexible(
+                                  child: Text(
+                                    event.title,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF1A1A2E),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           if (event.isAllDay)

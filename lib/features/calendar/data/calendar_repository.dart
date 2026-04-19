@@ -166,6 +166,7 @@ class CalendarRepository {
       description: e.description,
       location: e.location,
       colorHex: colorHex,
+      recurringEventId: e.recurringEventId,
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:se_hack/core/services/theme_service.dart';
 import 'package:se_hack/core/constants/api_keys.dart';
 import 'package:se_hack/features/auth/auth_bloc.dart';
 import 'package:se_hack/features/context_switch/domain/cognitive_debt_service.dart';
@@ -79,17 +80,38 @@ class MainApp extends StatelessWidget {
         BlocProvider(create: (_) => PostsBloc()..add(LoadPosts())),
         ChangeNotifierProvider(create: (_) => AttendanceService()),
         ChangeNotifierProvider(create: (_) => FocusService()),
+        ChangeNotifierProvider(create: (_) => ThemeNotifier()),
       ],
-      child: MaterialApp(
-        navigatorKey: globalNavigatorKey,
-        debugShowCheckedModeBanner: false,
-        title: 'Lumina',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4B4B6C)),
-          useMaterial3: true,
-          textTheme: GoogleFonts.interTextTheme(const TextTheme()),
-        ),
-        home: const _AuthGate(),
+      child: Builder(
+        builder: (context) {
+          final themeNotifier = context.watch<ThemeNotifier>();
+          return MaterialApp(
+            navigatorKey: globalNavigatorKey,
+            debugShowCheckedModeBanner: false,
+            title: 'Lumina',
+            themeMode: themeNotifier.mode,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF4B4B6C),
+                brightness: Brightness.light,
+              ),
+              useMaterial3: true,
+              textTheme: GoogleFonts.interTextTheme(const TextTheme()),
+            ),
+            darkTheme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF4B4B6C),
+                brightness: Brightness.dark,
+              ),
+              useMaterial3: true,
+              scaffoldBackgroundColor: const Color(0xFF121212),
+              textTheme: GoogleFonts.interTextTheme(
+                ThemeData.dark().textTheme,
+              ),
+            ),
+            home: const _AuthGate(),
+          );
+        },
       ),
     );
   }

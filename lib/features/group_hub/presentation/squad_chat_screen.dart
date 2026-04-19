@@ -275,6 +275,12 @@ class _SquadChatScreenState extends State<SquadChatScreen>
                               !msg.pinned,
                             );
                           },
+                          onDelete: () async {
+                            await widget.repo.deleteMessage(
+                              widget.squadId,
+                              msg.id,
+                            );
+                          },
                         );
                       },
                     );
@@ -390,6 +396,7 @@ class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final bool isMe;
   final VoidCallback onPin;
+  final VoidCallback onDelete;
   static const Color _primary = Color(0xFF4C4D7B);
   static const Color _accent = Color(0xFF7B61FF);
 
@@ -397,6 +404,7 @@ class _MessageBubble extends StatelessWidget {
     required this.message,
     required this.isMe,
     required this.onPin,
+    required this.onDelete,
   });
 
   @override
@@ -479,7 +487,16 @@ class _MessageBubble extends StatelessWidget {
                         bottomRight: Radius.circular(isMe ? 4 : 18),
                       ),
                     ),
-                    child: isCode
+                    child: message.isDeleted
+                        ? Text(
+                            message.content,
+                            style: TextStyle(
+                              color: isMe ? Colors.white70 : Colors.black54,
+                              fontStyle: FontStyle.italic,
+                              fontSize: 14,
+                            ),
+                          )
+                        : isCode
                         ? Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -646,6 +663,15 @@ class _MessageBubble extends StatelessWidget {
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(const SnackBar(content: Text('Copied!')));
+                },
+              ),
+            if (isMe && !message.isDeleted)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Delete Message', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  onDelete();
                 },
               ),
             const SizedBox(height: 8),

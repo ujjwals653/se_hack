@@ -283,7 +283,13 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                   itemBuilder: (_, i) {
                     final msg = msgs[i];
                     final isMe = msg.senderId == _myUid;
-                    return _DirectMessageBubble(message: msg, isMe: isMe);
+                    return _DirectMessageBubble(
+                      message: msg,
+                      isMe: isMe,
+                      onDelete: () async {
+                        await _friendsRepo.deleteDM(widget.friend.uid, msg.id);
+                      },
+                    );
                   },
                 );
               },
@@ -392,18 +398,51 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
 class _DirectMessageBubble extends StatelessWidget {
   final DirectMessage message;
   final bool isMe;
+  final VoidCallback onDelete;
   static const Color _primary = Color(0xFF4C4D7B);
 
-  const _DirectMessageBubble({required this.message, required this.isMe});
+  const _DirectMessageBubble({
+    required this.message,
+    required this.isMe,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isCode = message.type == MessageType.code;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: isMe
+    return GestureDetector(
+      onLongPress: () {
+        if (isMe && !message.isDeleted) {
+          showModalBottomSheet(
+            context: context,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            builder: (_) => SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 12),
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline, color: Colors.red),
+                    title: const Text('Delete Message', style: TextStyle(color: Colors.red)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onDelete();
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          );
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: isMe
             ? MainAxisAlignment.end
             : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -435,7 +474,16 @@ class _DirectMessageBubble extends StatelessWidget {
                       bottomRight: Radius.circular(isMe ? 4 : 18),
                     ),
                   ),
-                  child: isCode
+                  child: message.isDeleted
+                      ? Text(
+                          message.text,
+                          style: TextStyle(
+                            color: isMe ? Colors.white70 : Colors.black54,
+                            fontStyle: FontStyle.italic,
+                            fontSize: 14,
+                          ),
+                        )
+                      : isCode
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -542,8 +590,9 @@ class _DirectMessageBubble extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   String _formatTime(DateTime t) {
     final now = DateTime.now();

@@ -9,6 +9,7 @@ class ChatMessage {
   final String content;
   final bool pinned;
   final DateTime createdAt;
+  final bool isDeleted;
   
   // File attachments
   final String? fileUrl;
@@ -25,6 +26,7 @@ class ChatMessage {
     required this.type,
     required this.content,
     this.pinned = false,
+    this.isDeleted = false,
     required this.createdAt,
     this.fileUrl,
     this.fileName,
@@ -40,6 +42,7 @@ class ChatMessage {
       type: _parseType(d['type'] ?? 'text'),
       content: d['content'] ?? '',
       pinned: d['pinned'] ?? false,
+      isDeleted: d['isDeleted'] ?? false,
       createdAt: d['createdAt'] is Timestamp
           ? (d['createdAt'] as Timestamp).toDate()
           : DateTime.tryParse(d['createdAt'] ?? '') ?? DateTime.now(),
@@ -61,6 +64,7 @@ class ChatMessage {
         'type': type.name,
         'content': content,
         'pinned': pinned,
+        'isDeleted': isDeleted,
         'createdAt': FieldValue.serverTimestamp(),
         if (fileUrl != null) 'fileUrl': fileUrl,
         if (fileName != null) 'fileName': fileName,

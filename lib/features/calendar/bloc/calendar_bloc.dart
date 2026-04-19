@@ -268,7 +268,13 @@ class CalendarBloc extends Bloc<CalendarEvent, CalendarState> {
         final currentEvents = (state as CalendarLoaded).events;
         emit(
           CalendarLoaded(
-            currentEvents.where((e) => e.id != event.eventId).toList(),
+            currentEvents
+                .where(
+                  (e) =>
+                      e.id != event.eventId &&
+                      e.recurringEventId != event.eventId,
+                )
+                .toList(),
           ),
         );
       }

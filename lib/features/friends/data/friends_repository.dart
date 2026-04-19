@@ -364,4 +364,20 @@ class FriendsRepository {
      
      await batch.commit();
   }
+
+  Future<void> deleteDM(String targetUid, String messageId) async {
+    final chatId = _getChatId(_uid, targetUid);
+    await _db
+        .collection('directMessages')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId)
+        .update({
+      'isDeleted': true,
+      'text': '🚫 This message was deleted',
+      'fileUrl': null,
+      'fileName': null,
+      'fileSize': null,
+    });
+  }
 }
