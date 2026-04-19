@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:se_hack/features/rag/data/models/rag_document.dart';
 import 'package:se_hack/features/rag/presentation/rag_bloc.dart';
+import 'package:se_hack/features/rag/presentation/pdf_viewer_screen.dart';
+import 'package:se_hack/features/rag/presentation/image_viewer_screen.dart';
 
 /// Horizontally scrollable row of indexed document chips.
 class DocumentChipRow extends StatelessWidget {
@@ -44,6 +46,39 @@ class _DocumentChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTap: () {
+        if (doc.localPath.isNotEmpty) {
+          final name = doc.name.toLowerCase();
+          if (name.endsWith('.pdf')) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PdfViewerScreen(
+                  localPath: doc.localPath,
+                  title: doc.name,
+                ),
+              ),
+            );
+          } else if (name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png')) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ImageViewerScreen(
+                  localPath: doc.localPath,
+                  title: doc.name,
+                ),
+              ),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('This document was uploaded before offline viewing was supported.'),
+              backgroundColor: Colors.orange.shade400,
+            ),
+          );
+        }
+      },
       onLongPress: () => _confirmDelete(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

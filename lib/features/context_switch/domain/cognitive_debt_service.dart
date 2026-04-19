@@ -21,6 +21,9 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
   int _elapsedSeconds = 0;
   int _lastBreakTimestamp = 0; // The _elapsedSeconds when the last break ended
   
+  String? currentGoal;
+  int consecutiveSessions = 0;
+  
   // Timer for 5 minute break 
   int _breakSecondsRemaining = 0;
   
@@ -101,9 +104,9 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
   int get breakSecondsRemaining => _breakSecondsRemaining;
   String? get userId => _userId;
   
-  // A break is allowed if 30 minutes (1800s) have passed since the start or last break
+  // A break is allowed if 25 minutes (1500s) have passed since the start or last break
   bool get isBreakAllowed => _currentState == FocusState.focusing && 
-                             (_elapsedSeconds - _lastBreakTimestamp) >= 1800;
+                             (_elapsedSeconds - _lastBreakTimestamp) >= 1500;
 
   FocusService() {
     WidgetsBinding.instance.addObserver(this);
@@ -150,7 +153,7 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
     });
   }
 
-  Future<void> startFocusSession(BuildContext context, int durationMinutes) async {
+  Future<void> startFocusSession(BuildContext context, int durationMinutes, String goal) async {
     // Request notification permission for penalties
     if (await Permission.notification.isDenied) {
       await Permission.notification.request();
@@ -195,6 +198,7 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
     _currentState = FocusState.focusing;
     lastPenaltyMessage = null;
     showPenaltyAnimation = false;
+    currentGoal = goal;
     notifyListeners();
 
     _startTicker();
@@ -321,6 +325,7 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
     _ticker?.cancel();
     _currentState = FocusState.notStarted;
     _sessionPoints = 0;
+    consecutiveSessions = 0; // Reset streak on give up
     showPenaltyAnimation = false;
     notifyListeners();
   }
@@ -328,6 +333,7 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
   void _completeSession() {
     _ticker?.cancel();
     _currentState = FocusState.completed;
+    consecutiveSessions++; // Increment streak on completion
     
     // Final sync — sync the full session points now!
     if (_sessionPoints > 0) {

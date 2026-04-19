@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:se_hack/features/rag/data/models/rag_chunk.dart';
@@ -14,16 +15,14 @@ class RagRepository {
   Future<Database> _initDb() async {
     final dbPath = await getDatabasesPath();
     return openDatabase(
-      join(dbPath, 'lumina_rag.db'),
-      version: 1,
+      join(dbPath, 'lumina_rag_v4.db'),
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE rag_chunks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
             doc_id TEXT NOT NULL,
             chunk_index INTEGER NOT NULL,
             text TEXT NOT NULL,
-            embedding TEXT NOT NULL,
             source_name TEXT NOT NULL,
             created_at INTEGER NOT NULL
           )
@@ -33,7 +32,8 @@ class RagRepository {
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             chunk_count INTEGER NOT NULL,
-            created_at INTEGER NOT NULL
+            created_at INTEGER NOT NULL,
+            local_path TEXT NOT NULL
           )
         ''');
       },
@@ -53,7 +53,29 @@ class RagRepository {
 
   Future<List<RagChunk>> getAllChunks() async {
     final database = await db;
-    final rows = await database.query('rag_chunks');
+    // Selecting rowid alongside the default columns
+    final rows = await database.rawQuery('SELECT rowid, * FROM rag_chunks');
+    return rows.map(RagChunk.fromMap).toList();
+  }
+
+  Future<List<RagChunk>> searchChunks(String queryText) async {
+    final database = await db;
+    
+    final cleanQuery = queryText.replaceAll('"', ' ').trim();
+    if (cleanQuery.isEmpty) return [];
+    
+    final words = cleanQuery.split(RegExp(r'\s+')).where((e) => e.length > 2).toList();
+    if (words.isEmpty) return [];
+
+    // Standard SQLite LIKE query to avoid FTS module errors on Android
+    final whereClause = words.map((w) => 'text LIKE ?').join(' OR ');
+    final args = words.map((w) => '%$w%').toList();
+
+    final rows = await database.rawQuery('''
+      SELECT rowid, * FROM rag_chunks 
+      WHERE $whereClause 
+      LIMIT 10
+    ''', args);
     return rows.map(RagChunk.fromMap).toList();
   }
 
@@ -78,6 +100,22 @@ class RagRepository {
 
   Future<void> deleteDocument(String docId) async {
     final database = await db;
+    // Find the doc so we can delete its physical file
+    final rows = await database.query('rag_documents', where: 'id = ?', whereArgs: [docId]);
+    if (rows.isNotEmpty) {
+      final doc = RagDocument.fromMap(rows.first);
+      if (doc.localPath.isNotEmpty) {
+        try {
+          final file = File(doc.localPath);
+          if (file.existsSync()) {
+            file.deleteSync();
+          }
+        } catch (e) {
+          print('Failed to delete physical file: \$e');
+        }
+      }
+    }
+
     await database.delete('rag_documents', where: 'id = ?', whereArgs: [docId]);
     await deleteChunksByDocId(docId);
   }

@@ -77,6 +77,15 @@ class RagBloc extends Bloc<RagEvent, RagState> {
     on<RagIngestFile>(_onIngest);
     on<RagAskQuestion>(_onAsk);
     on<RagDeleteDocument>(_onDelete);
+    on<_ProgressUpdate>((event, emit) {
+      emit(RagIngesting(
+        documents: state.documents,
+        messages: state.messages,
+        done: event.done,
+        total: event.total,
+        fileName: event.fileName,
+      ));
+    });
   }
 
   Future<void> _onLoad(RagLoadDocuments event, Emitter<RagState> emit) async {
