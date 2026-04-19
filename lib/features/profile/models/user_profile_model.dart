@@ -29,7 +29,7 @@ class UserProfile {
   });
 
   factory UserProfile.fromDoc(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = (doc.data() as Map<String, dynamic>?) ?? {};
     return UserProfile(
       uid: doc.id,
       displayName: data['displayName'] ?? 'Unknown User',

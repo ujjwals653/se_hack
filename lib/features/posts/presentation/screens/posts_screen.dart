@@ -48,19 +48,6 @@ class PostsScreen extends StatelessWidget {
                     letterSpacing: -0.5,
                   ),
                 ),
-                const Spacer(),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.sort_rounded,
-                        color: Colors.white, size: 22),
-                    onPressed: () {},
-                    splashRadius: 22,
-                  ),
-                ),
               ],
             ),
           ),
