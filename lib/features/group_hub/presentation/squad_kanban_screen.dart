@@ -168,101 +168,203 @@ class _KanbanColumn extends StatefulWidget {
 
 class _KanbanColumnState extends State<_KanbanColumn> {
   bool _expanded = false;
+  bool _isHoveredByDrag = false;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header - Tap to Expand/Collapse
-          GestureDetector(
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: widget.meta.color.withOpacity(0.12),
-                borderRadius: _expanded
-                    ? const BorderRadius.vertical(top: Radius.circular(16))
-                    : BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.meta.label,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: widget.meta.color,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: widget.meta.color,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${widget.tasks.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    _expanded
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    color: widget.meta.color,
-                  ),
-                ],
-              ),
+    return DragTarget<KanbanTask>(
+      onWillAcceptWithDetails: (details) {
+        // Accept if the task is from a different column
+        if (details.data.column != widget.col) {
+          setState(() => _isHoveredByDrag = true);
+          // Auto-expand the column when a drag hovers over it
+          if (!_expanded) setState(() => _expanded = true);
+          return true;
+        }
+        return false;
+      },
+      onLeave: (_) => setState(() => _isHoveredByDrag = false),
+      onAcceptWithDetails: (details) {
+        setState(() => _isHoveredByDrag = false);
+        widget.onMove(details.data, widget.col);
+      },
+      builder: (context, candidateData, rejectedData) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: _isHoveredByDrag
+                ? widget.meta.color.withOpacity(0.08)
+                : Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _isHoveredByDrag
+                  ? widget.meta.color
+                  : Colors.grey.shade200,
+              width: _isHoveredByDrag ? 2 : 1,
             ),
           ),
-
-          // Task cards
-          if (_expanded)
-            if (widget.tasks.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'No tasks',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header - Tap to Expand/Collapse
+              GestureDetector(
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: widget.meta.color.withOpacity(0.12),
+                    borderRadius: _expanded
+                        ? const BorderRadius.vertical(top: Radius.circular(16))
+                        : BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.meta.label,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: widget.meta.color,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: widget.meta.color,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${widget.tasks.length}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _expanded
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        color: widget.meta.color,
+                      ),
+                    ],
                   ),
                 ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(12),
-                itemCount: widget.tasks.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (_, i) => _KanbanCard(
-                  task: widget.tasks[i],
-                  uid: widget.uid,
-                  onMove: widget.onMove,
-                  onDelete: widget.onDelete,
-                  colColor: widget.meta.color,
-                ),
               ),
-        ],
-      ),
+
+              // Drop-here hint when dragging over
+              if (_isHoveredByDrag)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: widget.meta.color.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: widget.meta.color.withOpacity(0.3),
+                        style: BorderStyle.solid,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_circle_outline, size: 16, color: widget.meta.color),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Drop here',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: widget.meta.color,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // Task cards
+              if (_expanded)
+                if (widget.tasks.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text(
+                        'No tasks',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(12),
+                    itemCount: widget.tasks.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (_, i) {
+                      final task = widget.tasks[i];
+                      return LongPressDraggable<KanbanTask>(
+                        data: task,
+                        delay: const Duration(milliseconds: 200),
+                        feedback: Material(
+                          elevation: 8,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: MediaQuery.of(context).size.width * 0.75,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: widget.meta.color, width: 2),
+                            ),
+                            child: Text(
+                              task.title,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1A1A2E),
+                                decoration: TextDecoration.none,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                        childWhenDragging: Opacity(
+                          opacity: 0.3,
+                          child: _KanbanCard(
+                            task: task,
+                            uid: widget.uid,
+                            onMove: widget.onMove,
+                            onDelete: widget.onDelete,
+                            colColor: widget.meta.color,
+                          ),
+                        ),
+                        child: _KanbanCard(
+                          task: task,
+                          uid: widget.uid,
+                          onMove: widget.onMove,
+                          onDelete: widget.onDelete,
+                          colColor: widget.meta.color,
+                        ),
+                      );
+                    },
+                  ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
