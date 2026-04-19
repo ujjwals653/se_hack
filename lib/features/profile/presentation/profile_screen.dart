@@ -47,6 +47,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: StreamBuilder<UserProfile>(
         stream: _profileRepo.watchProfile(widget.user.uid),
         builder: (ctx, snap) {
+          if (snap.hasError) {
+            return Center(child: Text('Error: ${snap.error}'));
+          }
           if (!snap.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -129,6 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     StreamBuilder<int>(
                       stream: _friendsRepo.watchFriendsCount(widget.user.uid),
                       builder: (ctx, snap) {
+                        if (snap.hasError) return _StatItem('Friends', '!', '👥');
                         return _StatItem('Friends', (snap.data ?? 0).toString(), '👥');
                       },
                     ),

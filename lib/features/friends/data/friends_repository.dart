@@ -131,6 +131,16 @@ class FriendsRepository {
         'joinedAt': FieldValue.serverTimestamp(),
      });
 
+     // Increment friendsCount on both user documents if they weren't already friends
+     if (!alreadyFriends) {
+       batch.update(_db.collection('users').doc(_uid), {
+         'friendsCount': FieldValue.increment(1)
+       });
+       batch.update(_db.collection('users').doc(fromUid), {
+         'friendsCount': FieldValue.increment(1)
+       });
+     }
+
      // Delete requests from both sides
      batch.delete(_db.collection('users').doc(_uid).collection('friendRequests').doc(fromUid));
      batch.delete(_db.collection('users').doc(fromUid).collection('friendRequests').doc(_uid));
