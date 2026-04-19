@@ -47,6 +47,17 @@ class FriendsRepository {
         });
   }
 
+  /// Streams the true friends count derived live from the subcollection.
+  /// This is always accurate unlike a stored integer counter.
+  Stream<int> watchFriendsCount(String uid) {
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('friends')
+        .snapshots()
+        .map((snap) => snap.docs.length);
+  }
+
   Stream<List<Map<String, dynamic>>> watchFriendRequests() {
     return _db
         .collection('users')
@@ -98,30 +109,28 @@ class FriendsRepository {
   }
 
   Future<void> acceptFriendRequest(String fromUid) async {
-     final fromUserDoc = await _db.collection('users').doc(fromUid).get();
-     final d = fromUserDoc.data();
-
-     final user = _auth.currentUser!;
+     // Check if already friends to prevent double-incrementing the count
+     final alreadyFriendDoc = await _db
+         .collection('users')
+         .doc(_uid)
+         .collection('friends')
+         .doc(fromUid)
+         .get();
+     final alreadyFriends = alreadyFriendDoc.exists;
 
      final batch = _db.batch();
-     
+
      // Add to my friends list
      batch.set(_db.collection('users').doc(_uid).collection('friends').doc(fromUid), {
         'joinedAt': FieldValue.serverTimestamp(),
-     });
-     batch.update(_db.collection('users').doc(_uid), {
-        'friendsCount': FieldValue.increment(1)
      });
 
      // Add to their friends list
      batch.set(_db.collection('users').doc(fromUid).collection('friends').doc(_uid), {
         'joinedAt': FieldValue.serverTimestamp(),
      });
-     batch.update(_db.collection('users').doc(fromUid), {
-        'friendsCount': FieldValue.increment(1)
-     });
 
-     // Delete requests
+     // Delete requests from both sides
      batch.delete(_db.collection('users').doc(_uid).collection('friendRequests').doc(fromUid));
      batch.delete(_db.collection('users').doc(fromUid).collection('friendRequests').doc(_uid));
 

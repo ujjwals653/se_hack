@@ -23,24 +23,22 @@ class RagService {
   int _keyIndex = 0;
 
   GenerativeModel get _llm => GenerativeModel(
-        model: 'gemini-2.5-flash',
-        apiKey: geminiApiKeysPool[_keyIndex % geminiApiKeysPool.length],
-      );
+    model: 'gemini-2.5-flash',
+    apiKey: geminiApiKeysPool[_keyIndex % geminiApiKeysPool.length],
+  );
 
   GenerativeModel get _ocrModel => GenerativeModel(
-        model: 'gemini-2.5-flash',
-        apiKey: geminiApiKeysPool[_keyIndex % geminiApiKeysPool.length],
-      );
+    model: 'gemini-2.5-flash',
+    apiKey: geminiApiKeysPool[_keyIndex % geminiApiKeysPool.length],
+  );
 
   final RagRepository _repo;
   final TextChunker _chunker;
   final _uuid = const Uuid();
 
-  RagService({
-    RagRepository? repo,
-    TextChunker? chunker,
-  })  : _repo = repo ?? RagRepository(),
-        _chunker = chunker ?? const TextChunker();
+  RagService({RagRepository? repo, TextChunker? chunker})
+    : _repo = repo ?? RagRepository(),
+      _chunker = chunker ?? const TextChunker();
 
   // ── Documents ────────────────────────────────────────────────────────────
 
@@ -70,7 +68,7 @@ class RagService {
 
     final docId = _uuid.v4();
     final now = DateTime.now().millisecondsSinceEpoch;
-    
+
     // Physically copy the file to local safe sandbox storage
     final appDocDir = await getApplicationDocumentsDirectory();
     final ext = p.extension(file.path);
@@ -115,7 +113,8 @@ class RagService {
 
     if (topChunks.isEmpty) {
       return RagAnswer(
-        text: 'I couldn\'t find any local notes matching your question. Please adjust your query or upload more notes.',
+        text:
+            'I couldn\'t find any local notes matching your question. Please adjust your query or upload more notes.',
         sources: [],
       );
     }
@@ -123,8 +122,10 @@ class RagService {
     final context = topChunks
         .asMap()
         .entries
-        .map((e) =>
-            '[${e.key + 1}] (from ${e.value.sourceName}):\n${e.value.text}')
+        .map(
+          (e) =>
+              '[${e.key + 1}] (from ${e.value.sourceName}):\n${e.value.text}',
+        )
         .join('\n\n');
 
     final prompt =
@@ -146,33 +147,46 @@ ANSWER:''';
       try {
         final response = await _llm.generateContent([Content.text(prompt)]);
         final answer = response.text ?? "Sorry, I couldn't generate an answer.";
-        
+
         final sources = topChunks.map((c) => c.sourceName).toSet().toList();
         return RagAnswer(text: answer.trim(), sources: sources);
       } catch (e) {
         final errorText = e.toString().toLowerCase();
-        if (errorText.contains('quota') || errorText.contains('429') || errorText.contains('retry in')) {
+        if (errorText.contains('quota') ||
+            errorText.contains('429') ||
+            errorText.contains('retry in')) {
           _keyIndex++;
           attempts++;
-          print('Quota exceeded during Query. Rotating API Key (Attempt $attempts)...');
-          
+          print(
+            'Quota exceeded during Query. Rotating API Key (Attempt $attempts)...',
+          );
+
           if (_keyIndex % geminiApiKeysPool.length == 0) {
             int delaySeconds = 60;
             final match = RegExp(r'retry in ([\d\.]+)s').firstMatch(errorText);
             if (match != null) {
               delaySeconds = double.parse(match.group(1)!).ceil() + 1;
             }
-            return RagAnswer(text: "Gemini is out of quota across all keys.", sources: []);
+            return RagAnswer(
+              text: "Gemini is out of quota across all keys.",
+              sources: [],
+            );
           } else {
             await Future.delayed(const Duration(milliseconds: 500));
           }
         } else {
           // Return EXACT error so we can see why it fails
-          return RagAnswer(text: "Gemini API Error: ${e.toString()}", sources: []);
+          return RagAnswer(
+            text: "Gemini API Error: ${e.toString()}",
+            sources: [],
+          );
         }
       }
     }
-    return RagAnswer(text: "Sorry, I couldn't generate an answer due to rate limits.", sources: []);
+    return RagAnswer(
+      text: "Sorry, I couldn't generate an answer due to rate limits.",
+      sources: [],
+    );
   }
 
   // ── OCR Helpers ───────────────────────────────────────────────────────────
@@ -181,10 +195,10 @@ ANSWER:''';
     // Completely native local PDF extraction! No more API errors.
     final bytes = await file.readAsBytes();
     final document = sync_pdf.PdfDocument(inputBytes: bytes);
-    
+
     final textExtractor = sync_pdf.PdfTextExtractor(document);
     final text = textExtractor.extractText();
-    
+
     document.dispose();
     return text;
   }
@@ -232,18 +246,24 @@ ANSWER:''';
         return res.text ?? '';
       } catch (e) {
         final errorText = e.toString().toLowerCase();
-        if (errorText.contains('quota') || errorText.contains('429') || errorText.contains('retry in')) {
+        if (errorText.contains('quota') ||
+            errorText.contains('429') ||
+            errorText.contains('retry in')) {
           _keyIndex++;
           attempts++;
-          print('Quota exceeded during OCR. Rotating API Key (Attempt $attempts)...');
-          
+          print(
+            'Quota exceeded during OCR. Rotating API Key (Attempt $attempts)...',
+          );
+
           if (_keyIndex % geminiApiKeysPool.length == 0) {
             int delaySeconds = 60;
             final match = RegExp(r'retry in ([\d\.]+)s').firstMatch(errorText);
             if (match != null) {
               delaySeconds = double.parse(match.group(1)!).ceil() + 1;
             }
-            print('All keys exhausted! Waiting $delaySeconds seconds before trying again...');
+            print(
+              'All keys exhausted! Waiting $delaySeconds seconds before trying again...',
+            );
             await Future.delayed(Duration(seconds: delaySeconds));
           } else {
             await Future.delayed(const Duration(milliseconds: 500));

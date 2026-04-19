@@ -37,7 +37,7 @@ class UserProfile {
       photoUrl: data['photoUrl'],
       bio: data['bio'] ?? 'Busy studying...',
       status: UserStatusX.fromString(data['status'] ?? 'online'),
-      points: (data['points'] as num?)?.toInt() ?? 0,
+      points: (data['focusPoints'] as num?)?.toInt() ?? (data['points'] as num?)?.toInt() ?? 0,
       badges: List<String>.from(data['badges'] ?? []),
       squadIds: List<String>.from(data['squadIds'] ?? []),
       followingCount: (data['followingCount'] as num?)?.toInt() ?? 0,

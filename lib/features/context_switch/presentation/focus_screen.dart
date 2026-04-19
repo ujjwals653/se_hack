@@ -18,6 +18,9 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
 
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
+  late AnimationController _dripController;
+  late AnimationController _splashController;
+
 
   // Scroll wheel controllers
   late FixedExtentScrollController _hoursController;
@@ -72,12 +75,28 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
       TweenSequenceItem(tween: Tween(begin: 8, end: -8), weight: 2),
       TweenSequenceItem(tween: Tween(begin: -8, end: 0), weight: 1),
     ]).animate(_shakeController);
+
+    _dripController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _splashController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
     _shakeController.dispose();
+    _dripController.dispose();
+    _splashController.dispose();
     _hoursController.dispose();
     _minutesController.dispose();
     _goalController.dispose();
@@ -88,15 +107,17 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     final fs = context.watch<FocusService>();
 
-    // Drive animations
-    if (fs.currentState == FocusState.focusing && !fs.showPenaltyAnimation) {
-      if (!_pulseController.isAnimating) _pulseController.forward();
-    } else {
-      _pulseController.stop();
-      _pulseController.value = 0.0;
-    }
+    // Drive shake animation on penalty
     if (fs.showPenaltyAnimation && !_shakeController.isAnimating) {
       _shakeController.forward(from: 0.0);
+    }
+
+    if (fs.currentState == FocusState.completed) {
+      if (!_splashController.isAnimating && !_splashController.isCompleted) {
+        _splashController.forward(from: 0.0);
+      }
+    } else {
+      _splashController.reset();
     }
 
     return Scaffold(
@@ -147,6 +168,15 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
             const Text(
               'Set Your Focus Duration',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF2D2D3A)),
+            ),
+            const SizedBox(height: 8),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 40),
+              child: Text(
+                'Study until the ice melts down to score points.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.4),
+              ),
             ),
             const SizedBox(height: 32),
 
@@ -238,6 +268,44 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
                 ],
               ),
             ),
+            
+            const SizedBox(height: 32),
+
+            // Rules / Instructions block
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E1), // softer yellow-orange
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.amber.shade300),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'How it works:',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• The ice melts dynamically as you focus.\n• If you switch to distracting apps (e.g. Instagram, YT), points will be penalized immediately!\n• Complete the session to claim your rewards.',
+                    style: TextStyle(fontSize: 13, color: Colors.orange.shade900, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 32),
 
             ElevatedButton(
@@ -442,91 +510,63 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
 
                   const SizedBox(height: 36),
 
-                  // Timer & Breathing Ring
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Breathing glow ring
-                      AnimatedBuilder(
-                        animation: _pulseController,
-                        builder: (ctx, child) {
-                          return Transform.scale(
-                            scale: _pulseScaleAnimation.value,
-                            child: Container(
-                              width: 230,
-                              height: 230,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: (isPenalty ? Colors.redAccent : const Color(0xFF6C63FF))
-                                    .withOpacity(_pulseOpacityAnimation.value),
+                  // 🧊 Ice Melt Timer
+                  AnimatedBuilder(
+                    animation: _dripController,
+                    builder: (context, _) {
+                      return SizedBox(
+                        height: 260,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Ice melt visual
+                            CustomPaint(
+                              size: const Size(220, 260),
+                              painter: _IceMeltPainter(
+                                progress: progress,
+                                dripValue: _dripController.value,
+                                isPenalty: isPenalty,
                               ),
                             ),
-                          );
-                        },
-                      ),
-                      
-                      // Solid background circle
-                      Container(
-                        width: 250,
-                        height: 250,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                        ),
-                      ),
-
-                      // Progress Ring
-                      SizedBox(
-                        width: 250,
-                        height: 250,
-                        child: CircularProgressIndicator(
-                          value: isOnBreak ? (fs.breakSecondsRemaining / 300.0) : progress,
-                          strokeWidth: 12,
-                          backgroundColor: Colors.grey.shade100,
-                          strokeCap: StrokeCap.round,
-                          valueColor: AlwaysStoppedAnimation(
-                            isPenalty ? Colors.redAccent
-                                : (isOnBreak ? Colors.blueAccent : const Color(0xFF4C4D7B)),
-                          ),
-                        ),
-                      ),
-                      
-                      // Text
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              if (h > 0) ...[
-                                _buildTimeDigit(h.toString().padLeft(2, '0')),
-                                const Padding(
-                                  padding: EdgeInsets.only(bottom: 8),
-                                  child: Text(' : ', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4C4D7B))),
+                            // Timer text overlaid on ice
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    if (h > 0) ...[
+                                      _buildTimeDigit(h.toString().padLeft(2, '0')),
+                                      const Padding(
+                                        padding: EdgeInsets.only(bottom: 8),
+                                        child: Text(' : ', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4C4D7B))),
+                                      ),
+                                    ],
+                                    _buildTimeDigit(m.toString().padLeft(2, '0')),
+                                    const Padding(
+                                      padding: EdgeInsets.only(bottom: 8),
+                                      child: Text(' : ', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4C4D7B))),
+                                    ),
+                                    _buildTimeDigit(s.toString().padLeft(2, '0')),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  isOnBreak ? 'B R E A K' : 'R E M A I N I N G',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.grey.shade400,
+                                    letterSpacing: 2,
+                                  ),
                                 ),
                               ],
-                              _buildTimeDigit(m.toString().padLeft(2, '0')),
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 8),
-                                child: Text(' : ', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF4C4D7B))),
-                              ),
-                              _buildTimeDigit(s.toString().padLeft(2, '0')),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            isOnBreak ? 'M I N    B R E A K' : 'R E M A I N I N G',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.grey.shade400,
-                              letterSpacing: 2,
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 36),
@@ -546,15 +586,9 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
                       children: [
                         const Icon(Icons.stars_rounded, color: Colors.amber, size: 28),
                         const SizedBox(width: 8),
-                        TweenAnimationBuilder<int>(
-                          duration: const Duration(seconds: 1),
-                          tween: IntTween(begin: 0, end: fs.sessionPoints),
-                          builder: (context, value, child) {
-                            return Text(
-                              value.toString(),
-                              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2D2D3A)),
-                            );
-                          },
+                        Text(
+                          fs.sessionPoints.toString(),
+                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2D2D3A)),
                         ),
                         const SizedBox(width: 4),
                         const Text('pts', style: TextStyle(fontSize: 14, color: Colors.grey)),
@@ -627,13 +661,17 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
     }
 
     final isBreakAllowed = fs.isBreakAllowed;
-    final waitRemainingMins = max(0, 25 - (fs.elapsedSeconds ~/ 60));
+    // Time remaining until break is allowed, in seconds
+    final waitRemainingSeconds = max(0, 1500 - fs.elapsedSeconds);
+    final wMins = waitRemainingSeconds ~/ 60;
+    final wSecs = waitRemainingSeconds % 60;
+    final waitLabel = '${wMins.toString().padLeft(2, '0')}:${wSecs.toString().padLeft(2, '0')}';
 
     return ElevatedButton.icon(
       onPressed: isBreakAllowed ? () => fs.takeBreak() : null,
       icon: const Icon(Icons.coffee_rounded, size: 20),
       label: Text(
-        isBreakAllowed ? 'TAKE 5 MIN BREAK' : 'Break in $waitRemainingMins m',
+        isBreakAllowed ? 'TAKE 5 MIN BREAK' : 'Break in $waitLabel',
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
       style: ElevatedButton.styleFrom(
@@ -672,7 +710,19 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
               shape: BoxShape.circle,
               color: Colors.green.shade50,
             ),
-            child: Icon(Icons.check_circle_rounded, size: 60, color: Colors.green.shade600),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                AnimatedBuilder(
+                  animation: _splashController,
+                  builder: (context, _) => CustomPaint(
+                    size: const Size(200, 200),
+                    painter: _SplashPainter(_splashController.value),
+                  ),
+                ),
+                Icon(Icons.check_circle_rounded, size: 60, color: Colors.green.shade600),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
           const Text(
@@ -750,4 +800,166 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
       ),
     );
   }
+}
+
+// ── Ice Melt Custom Painter ──────────────────────────────────────────────────
+class _IceMeltPainter extends CustomPainter {
+  final double progress;   // 0.0 = full ice, 1.0 = fully melted
+  final double dripValue;  // 0.0–1.0 repeating drip animation
+  final bool isPenalty;    // turns ice red on distraction penalty
+
+  const _IceMeltPainter({
+    required this.progress,
+    required this.dripValue,
+    this.isPenalty = false,
+  });
+
+  static double _lerp(double a, double b, double t) => a + (b - a) * t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cx = size.width / 2;
+    final double maxIceH = size.height * 0.70;
+    final double iceW = size.width * 0.62;
+    final double baseY = size.height * 0.78;
+    final double currentIceH = maxIceH * (1.0 - progress).clamp(0.0, 1.0);
+    final double iceTopY = baseY - currentIceH;
+    final double iceLeft = cx - iceW / 2;
+    final double iceRight = cx + iceW / 2;
+
+    // ── Puddle ────────────────────────────────────────────────────────────────
+    final double puddleRx = _lerp(iceW * 0.22, iceW * 0.80, progress);
+    final double puddleRy = _lerp(5.0, 20.0, progress);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(cx, baseY + puddleRy * 0.5),
+        width: puddleRx * 2,
+        height: puddleRy * 2,
+      ),
+      Paint()
+        ..color = (isPenalty
+            ? Color.lerp(const Color(0x33FFCDD2), const Color(0x77FFCDD2), progress)!
+            : Color.lerp(const Color(0x3389CFF0), const Color(0x7789CFF0), progress)!),
+    );
+
+    // ── Ice block (only if some remains) ─────────────────────────────────────
+    if (currentIceH > 2) {
+      final double br = _lerp(14, 50, progress);
+      final iceRRect = RRect.fromRectAndRadius(
+        Rect.fromLTRB(iceLeft, iceTopY, iceRight, baseY),
+        Radius.circular(br),
+      );
+
+      // Body gradient
+      final Color c1 = isPenalty
+          ? Color.lerp(const Color(0xFFFFCDD2), const Color(0xA0FFCDD2), progress)!
+          : Color.lerp(const Color(0xFFD6F0FF), const Color(0xA0D6F0FF), progress)!;
+      final Color c2 = isPenalty
+          ? Color.lerp(const Color(0xFFEF9A9A), const Color(0x80EF9A9A), progress)!
+          : Color.lerp(const Color(0xFF89CFF0), const Color(0x8089CFF0), progress)!;
+
+      canvas.drawRRect(
+        iceRRect,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [c1, c2],
+          ).createShader(Rect.fromLTRB(iceLeft, iceTopY, iceRight, baseY)),
+      );
+
+      // Border
+      canvas.drawRRect(
+        iceRRect,
+        Paint()
+          ..color = isPenalty
+              ? Color.lerp(const Color(0xFFE57373), const Color(0x50E57373), progress)!
+              : Color.lerp(const Color(0xFF55A7C8), const Color(0x5055A7C8), progress)!
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0,
+      );
+
+      // Shine (top-left glint)
+      if (currentIceH > 35) {
+        final shinePath = Path()
+          ..moveTo(iceLeft + 18, iceTopY + 12)
+          ..lineTo(iceLeft + 46, iceTopY + 12)
+          ..lineTo(iceLeft + 28, iceTopY + 30)
+          ..lineTo(iceLeft + 4, iceTopY + 30)
+          ..close();
+        canvas.drawPath(
+          shinePath,
+          Paint()..color = Colors.white.withOpacity(0.28 * (1.0 - progress)),
+        );
+      }
+
+      // Drip drops
+      if (progress > 0.05 && currentIceH > 12) {
+        final Paint dropPaint = Paint()
+          ..color = isPenalty
+              ? const Color(0xAAEF9A9A)
+              : const Color(0xAA89CFF0);
+        for (int i = 0; i < 2; i++) {
+          final double phase = (dripValue + i * 0.5) % 1.0;
+          if (phase > 0.85) continue;
+          final double dropY = _lerp(baseY, baseY + puddleRy * 2.2, phase);
+          final double dropX = cx + (i == 0 ? -14.0 : 13.0);
+          final double dropSize = _lerp(5.5, 2.0, phase);
+          canvas.drawOval(
+            Rect.fromCenter(
+              center: Offset(dropX, dropY),
+              width: dropSize,
+              height: dropSize * 1.5,
+            ),
+            dropPaint,
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_IceMeltPainter old) =>
+      old.progress != progress ||
+      old.dripValue != dripValue ||
+      old.isPenalty != isPenalty;
+}
+
+// ── Water Splash Custom Painter for Completion ────────────────────────────────
+class _SplashPainter extends CustomPainter {
+  final double progress;
+  const _SplashPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress == 0 || progress == 1) return;
+    
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final paint = Paint()..style = PaintingStyle.fill;
+    
+    // Expand a central ripple
+    final rippleRadius = progress * 80;
+    final rippleOpacity = (1.0 - progress).clamp(0.0, 1.0);
+    paint.color = const Color(0xFF89CFF0).withOpacity(rippleOpacity * 0.4);
+    canvas.drawCircle(Offset(cx, cy), rippleRadius, paint);
+    
+    // Small splash drops bursting outward
+    const numDrops = 8;
+    paint.color = const Color(0xFF38BDF8).withOpacity(rippleOpacity);
+    for (int i = 0; i < numDrops; i++) {
+      final angle = (i * 2 * pi) / numDrops;
+      // Use easing for velocity: drops shoot out fast, then slow down
+      final easeOutProgress = 1.0 - pow(1.0 - progress, 3); 
+      final distance = 40 + (easeOutProgress * 60);
+      final dx = cx + cos(angle) * distance;
+      final dy = cy + sin(angle) * distance;
+      final dropRadius = 6.0 * (1.0 - progress);
+      
+      canvas.drawCircle(Offset(dx, dy), dropRadius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SplashPainter old) => old.progress != progress;
 }

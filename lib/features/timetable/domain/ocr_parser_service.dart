@@ -15,7 +15,7 @@ class GeminiParserService {
   late final GenerativeModel _model;
 
   GeminiParserService() {
-    _model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: geminiApiKey);
+    _model = GenerativeModel(model: 'gemini-2.0-flash', apiKey: geminiApiKey);
   }
 
   /// Main entry point: extract timetable from an image or PDF file path.

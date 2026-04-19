@@ -20,17 +20,21 @@ class EmbeddingService {
         return result.embedding.values;
       } catch (e) {
         final errorText = e.toString().toLowerCase();
-        if (errorText.contains('quota') || errorText.contains('429') || errorText.contains('retry in')) {
+        if (errorText.contains('quota') ||
+            errorText.contains('429') ||
+            errorText.contains('retry in')) {
           _keyIndex++;
           attempts++;
-          
+
           if (_keyIndex % geminiApiKeysPool.length == 0) {
             int delaySeconds = 60;
             final match = RegExp(r'retry in ([\d\.]+)s').firstMatch(errorText);
             if (match != null) {
               delaySeconds = double.parse(match.group(1)!).ceil() + 1;
             }
-            print('All keys exhausted! Waiting $delaySeconds seconds before trying again...');
+            print(
+              'All keys exhausted! Waiting $delaySeconds seconds before trying again...',
+            );
             await Future.delayed(Duration(seconds: delaySeconds));
           } else {
             await Future.delayed(const Duration(milliseconds: 500));
@@ -42,7 +46,7 @@ class EmbeddingService {
         }
       }
     }
-    
+
     // If we reach here, all Gemini attempts exhausted or fell back due to API error.
     return _fallbackToOpenAiEmbedding(text);
   }
@@ -63,7 +67,9 @@ class EmbeddingService {
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final embedding = List<double>.from(data['data'][0]['embedding'].map((e) => e.toDouble()));
+      final embedding = List<double>.from(
+        data['data'][0]['embedding'].map((e) => e.toDouble()),
+      );
       return embedding;
     } else {
       throw Exception('OpenAI fallback also failed: ${response.body}');
