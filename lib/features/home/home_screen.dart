@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:se_hack/core/models/app_user.dart';
@@ -46,7 +47,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color headerColor = Color(0xFF4C4D7B);
+    final Color headerColor = context.headerBg;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -227,9 +228,9 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
         // Main Content Area with rounded corners
         Expanded(
           child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+            decoration: BoxDecoration(
+              color: context.scaffoldBg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
             ),
             child: ListView(
               padding: const EdgeInsets.only(
@@ -239,9 +240,9 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                 bottom: 100,
               ),
               children: [
-                const Text(
+                Text(
                   'Dashboard',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: context.textPrimary),
                 ),
                 // const Text(
                 //   'Dashboards',
@@ -452,16 +453,16 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardBg,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: context.isDark ? Colors.black26 : Colors.grey.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
-          border: Border.all(color: Colors.grey.shade100),
+          border: Border.all(color: context.borderColor),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -478,7 +479,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.textPrimary),
             ),
           ],
         ),
@@ -727,9 +728,9 @@ class _NotificationPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.65,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: StreamBuilder<List<Map<String, dynamic>>>(
         stream: repo.watchAllNotifications(),
@@ -930,7 +931,7 @@ class _FriendRequestTileState extends State<_FriendRequestTile> {
               children: [
                 RichText(
                   text: TextSpan(
-                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    style: TextStyle(fontSize: 14, color: context.textPrimary),
                     children: [
                       TextSpan(
                         text: name,
@@ -1081,7 +1082,7 @@ class _SquadInviteTileState extends State<_SquadInviteTile> {
               children: [
                 RichText(
                   text: TextSpan(
-                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    style: TextStyle(fontSize: 14, color: context.textPrimary),
                     children: [
                       TextSpan(
                         text: fromName,

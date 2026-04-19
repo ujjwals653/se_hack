@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import '../data/squad_repository.dart';
 import '../models/deadline_model.dart';
 import 'package:intl/intl.dart';
@@ -18,7 +19,7 @@ class DeadlineRadarScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
         backgroundColor: _primary,
         foregroundColor: Colors.white,
@@ -155,7 +156,7 @@ class _DeadlineTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isSquadPriority
@@ -188,10 +189,10 @@ class _DeadlineTile extends StatelessWidget {
               children: [
                 Text(
                   deadline.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: Color(0xFF1A1A2E)),
+                      color: context.textPrimary),
                 ),
                 const SizedBox(height: 3),
                 Text(

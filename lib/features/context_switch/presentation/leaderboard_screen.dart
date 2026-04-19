@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import 'package:provider/provider.dart';
 import '../domain/cognitive_debt_service.dart';
 
@@ -11,7 +12,7 @@ class LeaderboardScreen extends StatelessWidget {
     final myUserId = context.read<FocusService>().userId;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
         backgroundColor: const Color(0xFF4C4D7B),
         foregroundColor: Colors.white,
@@ -75,7 +76,9 @@ class LeaderboardScreen extends StatelessWidget {
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 decoration: BoxDecoration(
-                  color: isMe ? const Color(0xFFE8EAF6) : Colors.white,
+                  color: isMe
+                      ? const Color(0xFF4C4D7B).withOpacity(0.15)
+                      : context.cardBg,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isMe

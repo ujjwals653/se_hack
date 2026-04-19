@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import '../bloc/expense_cubit.dart';
 import '../data/expense_model.dart';
 import 'widgets/expense_tile.dart';
@@ -49,17 +50,17 @@ class _ExpenseHomeScreenState extends State<ExpenseHomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: context.cardBg,
+        foregroundColor: context.textPrimary,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Expenses',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: context.textPrimary,
           ),
         ),
         actions: [
@@ -83,7 +84,7 @@ class _ExpenseHomeScreenState extends State<ExpenseHomeScreen>
         bottom: TabBar(
           controller: _tabController,
           labelColor: _amber,
-          unselectedLabelColor: Colors.black38,
+          unselectedLabelColor: context.textSecondary,
           indicatorColor: _amber,
           indicatorWeight: 3,
           labelStyle: const TextStyle(
@@ -222,10 +223,10 @@ class _HomeTab extends StatelessWidget {
                               children: [
                                 Text(
                                   dayKey,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
+                                    color: context.textPrimary,
                                   ),
                                 ),
                                 Text(

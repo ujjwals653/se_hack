@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import '../data/squad_repository.dart';
 import '../models/squad_model.dart';
 
@@ -77,10 +78,10 @@ class _CreateSquadScreenState extends State<CreateSquadScreen> {
         children: [
           Expanded(
             child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: context.scaffoldBg,
                 borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(30)),
+                    const BorderRadius.vertical(top: Radius.circular(30)),
               ),
               child: ListView(
                 padding: const EdgeInsets.all(24),
@@ -111,7 +112,7 @@ class _CreateSquadScreenState extends State<CreateSquadScreen> {
                           decoration: BoxDecoration(
                             color: selected
                                 ? _accent.withOpacity(0.15)
-                                : Colors.grey.shade100,
+                                : context.surfaceBg,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: selected ? _accent : Colors.transparent,
@@ -235,7 +236,7 @@ class _CreateSquadScreenState extends State<CreateSquadScreen> {
                         decoration: BoxDecoration(
                           color: _type == type
                               ? _accent.withOpacity(0.08)
-                              : Colors.grey.shade50,
+                              : context.surfaceBg,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: _type == type
@@ -256,7 +257,7 @@ class _CreateSquadScreenState extends State<CreateSquadScreen> {
                                       fontWeight: FontWeight.bold,
                                       color: _type == type
                                           ? _primary
-                                          : Colors.black87,
+                                          : context.textPrimary,
                                     ),
                                   ),
                                   Text(

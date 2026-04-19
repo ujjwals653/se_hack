@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import '../data/squad_repository.dart';
 import '../models/squad_model.dart';
 
@@ -101,10 +102,10 @@ class _SquadDiscoveryScreenState extends State<SquadDiscoveryScreen> {
           // List area
           Expanded(
             child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: context.scaffoldBg,
                 borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(30)),
+                    const BorderRadius.vertical(top: Radius.circular(30)),
               ),
               child: _loading
                   ? const Center(
@@ -159,9 +160,9 @@ class _SquadCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: context.borderColor),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.08),
@@ -196,10 +197,10 @@ class _SquadCard extends StatelessWidget {
                   children: [
                     Text(
                       squad.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: Color(0xFF1A1A2E),
+                        color: context.textPrimary,
                       ),
                     ),
                     const SizedBox(width: 6),

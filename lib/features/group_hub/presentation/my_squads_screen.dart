@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import 'package:se_hack/features/friends/data/friends_repository.dart';
 import 'package:se_hack/features/group_hub/presentation/friend_chat_screen.dart';
 import '../../friends/models/friend_model.dart';
@@ -35,7 +36,7 @@ class _MySquadsScreenState extends State<MySquadsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.scaffoldBg,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -144,7 +145,7 @@ class _MySquadsScreenState extends State<MySquadsScreen> {
                   setState(() {});
                 },
                 child: Container(
-                  color: Colors.white,
+                  color: context.scaffoldBg,
                   child: StreamBuilder<List<Friend>>(
                     stream: _friendsRepo.watchFriends(),
                     builder: (ctx, friendsSnap) {
@@ -643,10 +644,10 @@ class _FriendListTile extends StatelessWidget {
                 children: [
                   Text(
                     friend.displayName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
-                      color: Color(0xFF1A1A2E),
+                      color: context.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -771,10 +772,10 @@ class _SquadListTile extends StatelessWidget {
                 children: [
                   Text(
                     squad.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
-                      color: Color(0xFF1A1A2E),
+                      color: context.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

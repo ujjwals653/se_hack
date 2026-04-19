@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
@@ -167,10 +168,10 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: context.scaffoldBg,
+        foregroundColor: context.textPrimary,
         elevation: 0,
         titleSpacing: 0,
         title: GestureDetector(
@@ -305,7 +306,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
               MediaQuery.of(context).viewInsets.bottom > 0 ? 12 : 32,
             ),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.chatInputBarBg,
               boxShadow: [
                 BoxShadow(
                   color: Colors.grey.withOpacity(0.1),
@@ -321,7 +322,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: context.chatInputBg,
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: TextField(
@@ -624,7 +625,7 @@ class _TypeChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? _primary : Colors.grey.shade100,
+          color: selected ? _primary : context.surfaceBg,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(

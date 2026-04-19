@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import '../domain/cognitive_debt_service.dart';
 import 'leaderboard_screen.dart';
 
@@ -121,7 +122,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
         backgroundColor: const Color(0xFF4C4D7B),
         foregroundColor: Colors.white,
@@ -185,7 +186,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
               margin: const EdgeInsets.symmetric(horizontal: 32),
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.cardBg,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
@@ -434,9 +435,9 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.cardBg,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey.shade200),
+                            border: Border.all(color: context.borderColor),
                           ),
                           child: Text(
                             'Completing: \n${fs.currentGoal ?? 'Deep Focus Session'}',
@@ -575,7 +576,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.cardBg,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
@@ -733,7 +734,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.cardBg,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10),

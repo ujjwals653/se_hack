@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -69,7 +70,7 @@ class _CalendarScreenState extends State<CalendarScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _surface,
+      backgroundColor: context.scaffoldBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -493,7 +494,7 @@ class _CalendarScreenState extends State<CalendarScreen>
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardBg,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -542,7 +543,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                                     style: GoogleFonts.inter(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF1A1A2E),
+                                      color: context.textPrimary,
                                     ),
                                   ),
                                 ),

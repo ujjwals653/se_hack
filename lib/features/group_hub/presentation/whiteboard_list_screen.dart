@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import 'package:intl/intl.dart';
 import '../data/squad_repository.dart';
 import '../models/squad_model.dart';
@@ -39,7 +40,7 @@ class _WhiteboardListScreenState extends State<WhiteboardListScreen> {
         final whiteboards = snapshot.data!;
 
         return Scaffold(
-          backgroundColor: Colors.grey.shade50,
+          backgroundColor: context.scaffoldBg,
           floatingActionButton: FloatingActionButton.extended(
             onPressed: _showCreateDialog,
             backgroundColor: _accent,
@@ -108,9 +109,9 @@ class _WhiteboardListScreenState extends State<WhiteboardListScreen> {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: context.borderColor),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),

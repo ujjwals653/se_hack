@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import 'dart:io';
 import 'package:se_hack/features/rag/domain/rag_service.dart';
 import 'package:se_hack/features/rag/data/rag_repository.dart';
@@ -62,7 +63,7 @@ class _RagScreenBodyState extends State<_RagScreenBody> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F4FF),
+      backgroundColor: context.scaffoldBg,
       body: Column(
         children: [
           _buildHeader(context),
@@ -304,8 +305,8 @@ class _RagScreenBodyState extends State<_RagScreenBody> {
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
+               decoration: BoxDecoration(
+              color: context.cardBg,
               borderRadius: BorderRadius.circular(18),
             ),
             child: Row(
@@ -326,9 +327,9 @@ class _RagScreenBodyState extends State<_RagScreenBody> {
     return Container(
       padding: EdgeInsets.fromLTRB(
           16, 10, 16, MediaQuery.of(context).padding.bottom + 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Color(0x12000000), blurRadius: 12, offset: Offset(0, -4))],
+      decoration: BoxDecoration(
+        color: context.chatInputBarBg,
+        boxShadow: const [BoxShadow(color: Color(0x12000000), blurRadius: 12, offset: Offset(0, -4))],
       ),
       child: Row(
         children: [
@@ -341,7 +342,7 @@ class _RagScreenBodyState extends State<_RagScreenBody> {
                 hintText: busy ? 'Processing…' : 'Ask a question from your notes…',
                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                 filled: true,
-                fillColor: const Color(0xFFF5F4FF),
+                fillColor: context.chatInputBg,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
@@ -391,7 +392,7 @@ class _SuggestionChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         margin: const EdgeInsets.symmetric(horizontal: 32),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardBg,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFFC4B5FD)),
           boxShadow: [

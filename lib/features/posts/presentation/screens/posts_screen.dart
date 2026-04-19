@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import '../../bloc/posts_bloc.dart';
 import '../../data/post_model.dart';
 import '../widgets/post_card.dart';
@@ -22,7 +23,7 @@ class PostsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: context.scaffoldBg,
       body: Column(
         children: [
           // ── Header ──
@@ -156,10 +157,10 @@ class PostsScreen extends StatelessWidget {
                               horizontal: 12, vertical: 6),
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.cardBg,
                             borderRadius: BorderRadius.circular(16),
                             border:
-                                Border.all(color: Colors.grey.shade200),
+                                Border.all(color: context.borderColor),
                           ),
                           child: Row(
                             children: [

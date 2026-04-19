@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import '../data/squad_repository.dart';
 import '../models/notes_page_model.dart';
 import 'package:intl/intl.dart';
@@ -45,7 +46,7 @@ class _NotesListViewState extends State<_NotesListView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
         backgroundColor: _primary,
         foregroundColor: Colors.white,
@@ -79,7 +80,7 @@ class _NotesListViewState extends State<_NotesListView> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     decoration: BoxDecoration(
-                      color: selected ? _primary : Colors.grey.shade100,
+                      color: selected ? _primary : context.surfaceBg,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -193,9 +194,9 @@ class _NotesListTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardBg,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade100),
+          border: Border.all(color: context.borderColor),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -224,10 +225,10 @@ class _NotesListTile extends StatelessWidget {
                 children: [
                   Text(
                     page.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: Color(0xFF1A1A2E)),
+                        color: context.textPrimary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -343,10 +344,10 @@ class _NotesEditorScreenState extends State<_NotesEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: context.scaffoldBg,
+        foregroundColor: context.textPrimary,
         elevation: 0,
         title: TextField(
           controller: _titleCtrl,

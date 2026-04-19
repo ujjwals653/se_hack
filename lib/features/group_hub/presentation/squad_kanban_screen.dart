@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import '../data/squad_repository.dart';
 import '../models/kanban_task_model.dart';
 
@@ -46,7 +47,7 @@ class _SquadKanbanScreenState extends State<SquadKanbanScreen> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A2E),
+                    color: context.textPrimary,
                   ),
                 ),
               ),
@@ -195,7 +196,7 @@ class _KanbanColumnState extends State<_KanbanColumn> {
           decoration: BoxDecoration(
             color: _isHoveredByDrag
                 ? widget.meta.color.withOpacity(0.08)
-                : Colors.grey.shade50,
+                : context.surfaceBg,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: _isHoveredByDrag
@@ -418,7 +419,7 @@ class _KanbanCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardBg,
           borderRadius: BorderRadius.circular(12),
           border: isAssigned
               ? Border.all(
@@ -497,12 +498,12 @@ class _KanbanCard extends StatelessWidget {
                 ),
               ],
             ),
-            Text(
+             Text(
               task.title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1A1A2E),
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

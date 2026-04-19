@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:se_hack/features/attendance/domain/attendance_service.dart';
@@ -33,12 +34,12 @@ class AttendanceScreen extends StatelessWidget {
     final hasStaleData = allStats.any((s) => !_isValidLecture(s.subjectName));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        title: const Text('Attendance Dashboard', style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
+        title: Text('Attendance Dashboard', style: TextStyle(color: context.textPrimary)),
+        backgroundColor: context.cardBg,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: context.textPrimary),
         actions: [
           IconButton(
             icon: const Icon(Icons.analytics_outlined, color: Colors.deepOrange),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/models/user_profile_model.dart';
 import '../../friends/data/friends_repository.dart';
@@ -44,11 +45,11 @@ class _UserProfileViewScreenState extends State<UserProfileViewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.scaffoldBg,
         elevation: 0,
-        foregroundColor: Colors.black,
+        foregroundColor: context.textPrimary,
       ),
       body: StreamBuilder<UserProfile>(
         stream: _profileRepo.watchProfile(widget.uid),
@@ -107,7 +108,7 @@ class _UserProfileViewScreenState extends State<UserProfileViewScreen> {
                 const SizedBox(height: 4),
                 Text(
                   profile.bio,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 14, color: context.textSecondary),
                 ),
                 const SizedBox(height: 24),
                 // Stats Row

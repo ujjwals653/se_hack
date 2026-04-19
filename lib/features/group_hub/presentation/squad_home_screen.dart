@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:se_hack/core/services/theme_service.dart';
 import '../data/squad_repository.dart';
 import '../models/squad_model.dart';
 import 'squad_chat_screen.dart';
@@ -136,7 +137,7 @@ class _SquadHomeScreenState extends State<SquadHomeScreen>
                                   top: Radius.circular(20),
                                 ),
                               ),
-                              backgroundColor: Colors.white,
+                              backgroundColor: context.cardBg,
                               builder: (ctx) => FractionallySizedBox(
                                 heightFactor: 0.85,
                                 child: Scaffold(
@@ -261,9 +262,9 @@ class _SquadHomeScreenState extends State<SquadHomeScreen>
                 // ── Tab Content ──────────────────────────────────────────
                 Expanded(
                   child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
+                    decoration: BoxDecoration(
+                      color: context.scaffoldBg,
+                      borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(0),
                       ),
                     ),
@@ -510,7 +511,7 @@ class _MembersTab extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: context.cardBg,
       builder: (ctx) => FractionallySizedBox(
         heightFactor: 0.7,
         child: Column(
