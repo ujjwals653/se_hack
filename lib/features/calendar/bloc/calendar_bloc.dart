@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:se_hack/features/calendar/data/calendar_repository.dart';
 import 'package:se_hack/features/calendar/domain/calendar_event_model.dart';
+import 'package:se_hack/features/group_hub/data/squad_repository.dart';
+import 'package:se_hack/features/group_hub/models/deadline_model.dart';
 
 // ─── Events ───────────────────────────────────────────────────────────────────
 
@@ -38,6 +40,8 @@ class CalendarEventUndoDeleteRequested extends CalendarEvent {
   List<Object?> get props => [event];
 }
 
+class CalendarSyncSquadDeadlinesRequested extends CalendarEvent {}
+
 // ─── States ───────────────────────────────────────────────────────────────────
 
 abstract class CalendarState extends Equatable {
@@ -73,13 +77,55 @@ class CalendarBloc extends Bloc<CalendarEvent, CalendarState> {
   final CalendarRepository _repository;
 
   CalendarBloc({CalendarRepository? repository})
-      : _repository = repository ?? CalendarRepository(),
-        super(CalendarInitial()) {
+    : _repository = repository ?? CalendarRepository(),
+      super(CalendarInitial()) {
     on<CalendarLoadRequested>(_onLoad);
     on<CalendarRefreshRequested>(_onRefresh);
     on<CalendarEventAddRequested>(_onAdd);
     on<CalendarEventDeleteRequested>(_onDelete);
     on<CalendarEventUndoDeleteRequested>(_onUndoDelete);
+    on<CalendarSyncSquadDeadlinesRequested>(_onSyncSquadDeadlines);
+  }
+
+  Future<void> _onSyncSquadDeadlines(
+    CalendarSyncSquadDeadlinesRequested event,
+    Emitter<CalendarState> emit,
+  ) async {
+    try {
+      final squadRepo = SquadRepository();
+      final deadlines = await squadRepo.getAllMyDeadlines();
+
+      final currentEvents = state is CalendarLoaded
+          ? (state as CalendarLoaded).events
+          : <CalendarEventModel>[];
+
+      for (final deadline in deadlines) {
+        final title = '[Squad Deadline] ${deadline.title}';
+
+        final exists = currentEvents.any((e) => e.title == title);
+
+        if (!exists) {
+          final calendarEvent = CalendarEventModel(
+            id: '',
+            title: title,
+            start: deadline.dueDate,
+            end: deadline.dueDate,
+            isAllDay: true,
+            description:
+                'Subject: ${deadline.subject}\\n\\nAutomated sync from Lumina Squads.',
+          );
+          await _repository.addEvent(calendarEvent);
+        }
+      }
+
+      await _fetch(emit);
+    } catch (e) {
+      if (e is CalendarAuthException) {
+        emit(CalendarNeedsAuth());
+      } else {
+        emit(CalendarError(e.toString()));
+      }
+    }
   }
 
   Future<void> _onAdd(
@@ -109,8 +155,11 @@ class CalendarBloc extends Bloc<CalendarEvent, CalendarState> {
     try {
       if (state is CalendarLoaded) {
         final currentEvents = (state as CalendarLoaded).events;
-        emit(CalendarLoaded(
-            currentEvents.where((e) => e.id != event.eventId).toList()));
+        emit(
+          CalendarLoaded(
+            currentEvents.where((e) => e.id != event.eventId).toList(),
+          ),
+        );
       }
       await _repository.deleteEvent(event.eventId);
       await _fetch(emit);

@@ -67,7 +67,8 @@ class SquadRepository {
         {
           'role': 'member',
           'joinedAt': FieldValue.serverTimestamp(),
-          'displayName': user.displayName ?? user.email?.split('@').first ?? 'Member',
+          'displayName':
+              user.displayName ?? user.email?.split('@').first ?? 'Member',
           'photoUrl': user.photoURL,
         },
       );
@@ -118,6 +119,20 @@ class SquadRepository {
       if (!squadIds.contains(data['squadId'])) squadIds.add(data['squadId']);
     }
     return squadIds;
+  }
+
+  Future<List<Deadline>> getAllMyDeadlines() async {
+    final squadIds = await getMySquadIds();
+    final List<Deadline> allDeadlines = [];
+    for (final squadId in squadIds) {
+      final snap = await _db
+          .collection('squads')
+          .doc(squadId)
+          .collection('deadlines')
+          .get();
+      allDeadlines.addAll(snap.docs.map(Deadline.fromDoc));
+    }
+    return allDeadlines;
   }
 
   Stream<Squad?> watchSquad(String squadId) => _db
@@ -257,17 +272,22 @@ class SquadRepository {
     int? fileSize,
   }) async {
     final user = _auth.currentUser!;
-    
+
     final batch = _db.batch();
-    final msgRef = _db.collection('squads').doc(squadId).collection('chat').doc();
-    
+    final msgRef = _db
+        .collection('squads')
+        .doc(squadId)
+        .collection('chat')
+        .doc();
+
     batch.set(msgRef, {
       'uid': _uid,
       'type': type.name,
       'content': content,
       'pinned': false,
       'createdAt': FieldValue.serverTimestamp(),
-      'senderName': user.displayName ?? user.email?.split('@').first ?? 'Member',
+      'senderName':
+          user.displayName ?? user.email?.split('@').first ?? 'Member',
       'senderPhoto': user.photoURL,
       if (fileUrl != null) 'fileUrl': fileUrl,
       if (fileName != null) 'fileName': fileName,
@@ -279,7 +299,8 @@ class SquadRepository {
     if (type == MessageType.file) snippet = '📎 Document';
     if (type == MessageType.code) snippet = '</> Code snippet';
 
-    final safeName = user.displayName ?? user.email?.split('@').first ?? 'Someone';
+    final safeName =
+        user.displayName ?? user.email?.split('@').first ?? 'Someone';
     batch.update(_db.collection('squads').doc(squadId), {
       'lastMessage': "$safeName: $snippet",
       'lastMessageTime': FieldValue.serverTimestamp(),
@@ -418,7 +439,8 @@ class SquadRepository {
       'content': page.content,
       'subject': page.subject,
       'lastEditedBy': _uid,
-      'lastEditedByName': user.displayName ?? user.email?.split('@').first ?? 'Member',
+      'lastEditedByName':
+          user.displayName ?? user.email?.split('@').first ?? 'Member',
       'lastEditedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -456,7 +478,8 @@ class SquadRepository {
       'subject': subject,
       'semester': semester,
       'uploadedBy': _uid,
-      'uploaderName': user.displayName ?? user.email?.split('@').first ?? 'Member',
+      'uploaderName':
+          user.displayName ?? user.email?.split('@').first ?? 'Member',
       'uploadedAt': FieldValue.serverTimestamp(),
       'fileType': fileName.toLowerCase().endsWith('.pdf')
           ? 'pdf'
@@ -539,10 +562,10 @@ class SquadRepository {
         .doc(squadId)
         .collection('whiteboards')
         .add({
-      'name': name,
-      'createdBy': _uid,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+          'name': name,
+          'createdBy': _uid,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
     return ref.id;
   }
 
@@ -568,12 +591,19 @@ class SquadRepository {
       batch.delete(doc.reference);
     }
     batch.delete(
-      _db.collection('squads').doc(squadId).collection('whiteboards').doc(whiteboardId),
+      _db
+          .collection('squads')
+          .doc(squadId)
+          .collection('whiteboards')
+          .doc(whiteboardId),
     );
     await batch.commit();
   }
 
-  Stream<List<WhiteboardStroke>> watchStrokes(String squadId, String whiteboardId) => _db
+  Stream<List<WhiteboardStroke>> watchStrokes(
+    String squadId,
+    String whiteboardId,
+  ) => _db
       .collection('squads')
       .doc(squadId)
       .collection('whiteboards')
@@ -583,7 +613,11 @@ class SquadRepository {
       .snapshots()
       .map((s) => s.docs.map(WhiteboardStroke.fromDoc).toList());
 
-  Future<void> addStroke(String squadId, String whiteboardId, WhiteboardStroke stroke) async {
+  Future<void> addStroke(
+    String squadId,
+    String whiteboardId,
+    WhiteboardStroke stroke,
+  ) async {
     await _db
         .collection('squads')
         .doc(squadId)
@@ -594,7 +628,11 @@ class SquadRepository {
   }
 
   /// Saves a stroke and returns its Firestore document ID (for local undo).
-  Future<String?> addStrokeGetId(String squadId, String whiteboardId, WhiteboardStroke stroke) async {
+  Future<String?> addStrokeGetId(
+    String squadId,
+    String whiteboardId,
+    WhiteboardStroke stroke,
+  ) async {
     try {
       final ref = await _db
           .collection('squads')
@@ -610,7 +648,11 @@ class SquadRepository {
   }
 
   /// Deletes a specific stroke by its doc ID — used for local undo.
-  Future<void> deleteStrokeById(String squadId, String whiteboardId, String strokeId) => _db
+  Future<void> deleteStrokeById(
+    String squadId,
+    String whiteboardId,
+    String strokeId,
+  ) => _db
       .collection('squads')
       .doc(squadId)
       .collection('whiteboards')

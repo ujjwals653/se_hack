@@ -124,8 +124,13 @@ class _CalendarScreenState extends State<CalendarScreen>
             label: 'Sync Squad Deadlines',
             labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w500),
             onTap: () {
+              context.read<CalendarBloc>().add(
+                CalendarSyncSquadDeadlinesRequested(),
+              );
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Syncing Squad Deadlines...')),
+                const SnackBar(
+                  content: Text('Syncing Squad Deadlines to Calendar...'),
+                ),
               );
             },
           ),
@@ -144,8 +149,11 @@ class _CalendarScreenState extends State<CalendarScreen>
         children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: const Icon(Icons.arrow_back_ios_new,
-                color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -162,8 +170,7 @@ class _CalendarScreenState extends State<CalendarScreen>
           GestureDetector(
             onTap: _goToToday,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
@@ -186,9 +193,9 @@ class _CalendarScreenState extends State<CalendarScreen>
               return GestureDetector(
                 onTap: loading
                     ? null
-                    : () => context
-                        .read<CalendarBloc>()
-                        .add(CalendarRefreshRequested()),
+                    : () => context.read<CalendarBloc>().add(
+                        CalendarRefreshRequested(),
+                      ),
                 child: loading
                     ? const SizedBox(
                         width: 22,
@@ -198,8 +205,11 @@ class _CalendarScreenState extends State<CalendarScreen>
                           strokeWidth: 2.5,
                         ),
                       )
-                    : const Icon(Icons.refresh_rounded,
-                        color: Colors.white70, size: 24),
+                    : const Icon(
+                        Icons.refresh_rounded,
+                        color: Colors.white70,
+                        size: 24,
+                      ),
               );
             },
           ),
@@ -262,8 +272,14 @@ class _CalendarScreenState extends State<CalendarScreen>
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
               ),
-              leftChevronIcon: const Icon(Icons.chevron_left, color: Colors.white),
-              rightChevronIcon: const Icon(Icons.chevron_right, color: Colors.white),
+              leftChevronIcon: const Icon(
+                Icons.chevron_left,
+                color: Colors.white,
+              ),
+              rightChevronIcon: const Icon(
+                Icons.chevron_right,
+                color: Colors.white,
+              ),
               titleTextStyle: GoogleFonts.inter(
                 color: Colors.white,
                 fontSize: 16,
@@ -271,15 +287,27 @@ class _CalendarScreenState extends State<CalendarScreen>
               ),
             ),
             daysOfWeekStyle: DaysOfWeekStyle(
-              weekdayStyle: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
-              weekendStyle: GoogleFonts.inter(color: Colors.white70, fontSize: 13),
+              weekdayStyle: GoogleFonts.inter(
+                color: Colors.white70,
+                fontSize: 13,
+              ),
+              weekendStyle: GoogleFonts.inter(
+                color: Colors.white70,
+                fontSize: 13,
+              ),
             ),
             calendarStyle: CalendarStyle(
               defaultTextStyle: GoogleFonts.inter(color: Colors.white),
               weekendTextStyle: GoogleFonts.inter(color: Colors.white),
               outsideTextStyle: GoogleFonts.inter(color: Colors.white38),
-              todayTextStyle: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
-              selectedTextStyle: GoogleFonts.inter(color: _primary, fontWeight: FontWeight.bold),
+              todayTextStyle: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              selectedTextStyle: GoogleFonts.inter(
+                color: _primary,
+                fontWeight: FontWeight.bold,
+              ),
               todayDecoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
@@ -297,7 +325,10 @@ class _CalendarScreenState extends State<CalendarScreen>
             calendarBuilders: CalendarBuilders(
               singleMarkerBuilder: (context, date, event) {
                 return Container(
-                  decoration: const BoxDecoration(shape: BoxShape.circle, color: _accent),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _accent,
+                  ),
                   width: 5.0,
                   height: 5.0,
                   margin: const EdgeInsets.symmetric(horizontal: 1.5),
@@ -316,9 +347,7 @@ class _CalendarScreenState extends State<CalendarScreen>
     return BlocBuilder<CalendarBloc, CalendarState>(
       builder: (context, state) {
         if (state is CalendarLoading || state is CalendarInitial) {
-          return const Center(
-            child: CircularProgressIndicator(color: _accent),
-          );
+          return const Center(child: CircularProgressIndicator(color: _accent));
         }
 
         if (state is CalendarNeedsAuth) {
@@ -357,8 +386,7 @@ class _CalendarScreenState extends State<CalendarScreen>
             : ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                 itemCount: dayEvents.length,
-                itemBuilder: (context, i) =>
-                    _buildEventCard(dayEvents[i]),
+                itemBuilder: (context, i) => _buildEventCard(dayEvents[i]),
               ),
       ),
     );
@@ -372,8 +400,8 @@ class _CalendarScreenState extends State<CalendarScreen>
     final timeStr = event.isAllDay
         ? 'All day'
         : event.start != null
-            ? '${DateFormat('h:mm a').format(event.start!)} – ${event.end != null ? DateFormat('h:mm a').format(event.end!) : ''}'
-            : '';
+        ? '${DateFormat('h:mm a').format(event.start!)} – ${event.end != null ? DateFormat('h:mm a').format(event.end!) : ''}'
+        : '';
 
     return Dismissible(
       key: Key(event.id),
@@ -389,7 +417,9 @@ class _CalendarScreenState extends State<CalendarScreen>
         child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
       ),
       onDismissed: (direction) {
-        context.read<CalendarBloc>().add(CalendarEventDeleteRequested(event.id));
+        context.read<CalendarBloc>().add(
+          CalendarEventDeleteRequested(event.id),
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Task deleted'),
@@ -397,7 +427,9 @@ class _CalendarScreenState extends State<CalendarScreen>
               label: 'Undo',
               textColor: _accent,
               onPressed: () {
-                context.read<CalendarBloc>().add(CalendarEventUndoDeleteRequested(event));
+                context.read<CalendarBloc>().add(
+                  CalendarEventUndoDeleteRequested(event),
+                );
               },
             ),
           ),
@@ -409,124 +441,131 @@ class _CalendarScreenState extends State<CalendarScreen>
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Color strip
-            Container(
-              width: 5,
-              decoration: BoxDecoration(
-                color: eventColor,
-                borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(16)),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            event.title,
-                            style: GoogleFonts.inter(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF1A1A2E),
-                            ),
-                          ),
-                        ),
-                        if (event.isAllDay)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: eventColor.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              'All day',
-                              style: GoogleFonts.inter(
-                                color: eventColor,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    if (timeStr.isNotEmpty && !event.isAllDay) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(Icons.access_time_rounded,
-                              size: 13,
-                              color: Colors.grey.shade500),
-                          const SizedBox(width: 4),
-                          Text(
-                            timeStr,
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    if (event.location != null &&
-                        event.location!.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on_outlined,
-                              size: 13,
-                              color: Colors.grey.shade400),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              event.location!,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: Colors.grey.shade400,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    if (event.description != null &&
-                        event.description!.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        event.description!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.grey.shade500,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-      ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Color strip
+              Container(
+                width: 5,
+                decoration: BoxDecoration(
+                  color: eventColor,
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(16),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              event.title,
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF1A1A2E),
+                              ),
+                            ),
+                          ),
+                          if (event.isAllDay)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: eventColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'All day',
+                                style: GoogleFonts.inter(
+                                  color: eventColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (timeStr.isNotEmpty && !event.isAllDay) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 13,
+                              color: Colors.grey.shade500,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              timeStr,
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      if (event.location != null &&
+                          event.location!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.location_on_outlined,
+                              size: 13,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                event.location!,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade400,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      if (event.description != null &&
+                          event.description!.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          event.description!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -621,9 +660,12 @@ class _CalendarScreenState extends State<CalendarScreen>
                 backgroundColor: _primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 28, vertical: 14),
+                  horizontal: 28,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 textStyle: GoogleFonts.inter(
                   fontWeight: FontWeight.w600,
                   fontSize: 15,
@@ -647,8 +689,7 @@ class _CalendarScreenState extends State<CalendarScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline,
-                size: 56, color: Colors.red.shade300),
+            Icon(Icons.error_outline, size: 56, color: Colors.red.shade300),
             const SizedBox(height: 16),
             Text(
               'Something went wrong',
@@ -673,7 +714,8 @@ class _CalendarScreenState extends State<CalendarScreen>
                 backgroundColor: _primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: () =>
                   context.read<CalendarBloc>().add(CalendarLoadRequested()),
@@ -718,10 +760,19 @@ class _CalendarScreenState extends State<CalendarScreen>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Add Task', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Add Task',
+                      style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     TextField(
-                      decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                        labelText: 'Title',
+                        border: OutlineInputBorder(),
+                      ),
                       onChanged: (v) => title = v,
                     ),
                     const SizedBox(height: 12),
@@ -730,16 +781,38 @@ class _CalendarScreenState extends State<CalendarScreen>
                         Expanded(
                           child: InkWell(
                             onTap: () async {
-                              final d = await showDatePicker(context: context, initialDate: start, firstDate: DateTime(2000), lastDate: DateTime(2100));
+                              final d = await showDatePicker(
+                                context: context,
+                                initialDate: start,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                              );
                               if (d != null) {
                                 if (!context.mounted) return;
-                                final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(start));
-                                if (t != null) setState(() => start = DateTime(d.year, d.month, d.day, t.hour, t.minute));
+                                final t = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.fromDateTime(start),
+                                );
+                                if (t != null)
+                                  setState(
+                                    () => start = DateTime(
+                                      d.year,
+                                      d.month,
+                                      d.day,
+                                      t.hour,
+                                      t.minute,
+                                    ),
+                                  );
                               }
                             },
                             child: InputDecorator(
-                              decoration: const InputDecoration(labelText: 'Start', border: OutlineInputBorder()),
-                              child: Text(DateFormat('MMM d, h:mm a').format(start)),
+                              decoration: const InputDecoration(
+                                labelText: 'Start',
+                                border: OutlineInputBorder(),
+                              ),
+                              child: Text(
+                                DateFormat('MMM d, h:mm a').format(start),
+                              ),
                             ),
                           ),
                         ),
@@ -747,16 +820,38 @@ class _CalendarScreenState extends State<CalendarScreen>
                         Expanded(
                           child: InkWell(
                             onTap: () async {
-                              final d = await showDatePicker(context: context, initialDate: end, firstDate: DateTime(2000), lastDate: DateTime(2100));
+                              final d = await showDatePicker(
+                                context: context,
+                                initialDate: end,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                              );
                               if (d != null) {
                                 if (!context.mounted) return;
-                                final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(end));
-                                if (t != null) setState(() => end = DateTime(d.year, d.month, d.day, t.hour, t.minute));
+                                final t = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.fromDateTime(end),
+                                );
+                                if (t != null)
+                                  setState(
+                                    () => end = DateTime(
+                                      d.year,
+                                      d.month,
+                                      d.day,
+                                      t.hour,
+                                      t.minute,
+                                    ),
+                                  );
                               }
                             },
                             child: InputDecorator(
-                              decoration: const InputDecoration(labelText: 'End', border: OutlineInputBorder()),
-                              child: Text(DateFormat('MMM d, h:mm a').format(end)),
+                              decoration: const InputDecoration(
+                                labelText: 'End',
+                                border: OutlineInputBorder(),
+                              ),
+                              child: Text(
+                                DateFormat('MMM d, h:mm a').format(end),
+                              ),
                             ),
                           ),
                         ),
@@ -764,12 +859,18 @@ class _CalendarScreenState extends State<CalendarScreen>
                     ),
                     const SizedBox(height: 12),
                     TextField(
-                      decoration: const InputDecoration(labelText: 'Location (Optional)', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                        labelText: 'Location (Optional)',
+                        border: OutlineInputBorder(),
+                      ),
                       onChanged: (v) => location = v,
                     ),
                     const SizedBox(height: 12),
                     TextField(
-                      decoration: const InputDecoration(labelText: 'Description (Optional)', border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                        labelText: 'Description (Optional)',
+                        border: OutlineInputBorder(),
+                      ),
                       onChanged: (v) => description = v,
                       maxLines: 3,
                     ),
@@ -778,7 +879,9 @@ class _CalendarScreenState extends State<CalendarScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _accent,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: () {
                         if (title.trim().isEmpty) return;
@@ -787,14 +890,27 @@ class _CalendarScreenState extends State<CalendarScreen>
                           title: title.trim(),
                           start: start,
                           end: end,
-                          description: description.isNotEmpty ? description.trim() : null,
-                          location: location.isNotEmpty ? location.trim() : null,
+                          description: description.isNotEmpty
+                              ? description.trim()
+                              : null,
+                          location: location.isNotEmpty
+                              ? location.trim()
+                              : null,
                           isAllDay: isAllDay,
                         );
-                        this.context.read<CalendarBloc>().add(CalendarEventAddRequested(eventModel));
+                        this.context.read<CalendarBloc>().add(
+                          CalendarEventAddRequested(eventModel),
+                        );
                         Navigator.pop(ctx);
                       },
-                      child: Text('Save', style: GoogleFonts.inter(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'Save',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 24),
                   ],
