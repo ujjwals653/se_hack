@@ -164,16 +164,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 24),
 
-                // Heatmap Map section
+                // Chart section
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
-                    'Activity Heatmap',
+                    'Points History',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(height: 12),
-                _HeatmapGrid(uid: widget.user.uid),
+                _PointsChart(uid: widget.user.uid),
 
                 const SizedBox(height: 100),
               ],
@@ -353,72 +353,97 @@ class _BadgeCard extends StatelessWidget {
   }
 }
 
-class _HeatmapGrid extends StatelessWidget {
+class _PointsChart extends StatelessWidget {
   final String uid;
 
-  const _HeatmapGrid({required this.uid});
+  const _PointsChart({required this.uid});
 
   @override
   Widget build(BuildContext context) {
-    // 12 weeks * 7 days grid
     return StreamBuilder<Map<DateTime, int>>(
       stream: ProfileRepository().watchActivityLog(uid),
       builder: (ctx, snap) {
-        final log = snap.data ?? {};
+        if (!snap.hasData) {
+          return const SizedBox(height: 180, child: Center(child: CircularProgressIndicator()));
+        }
+        
+        final log = snap.data!;
+        if (log.isEmpty) {
+          return const SizedBox(height: 180, child: Center(child: Text('No points history yet!')));
+        }
 
-        // Build the blocks representing past 84 days
-        final today = DateTime.now();
-        final startDate = today.subtract(const Duration(days: 83));
+        // Sort keys explicitly
+        final sortedDates = log.keys.toList()..sort();
+        
+        final List<FlSpot> spots = [];
+        double maxPoints = 0;
+        
+        for (int i = 0; i < sortedDates.length; i++) {
+          final pts = log[sortedDates[i]]!.toDouble();
+          if (pts > maxPoints) maxPoints = pts;
+          spots.add(FlSpot(i.toDouble(), pts));
+        }
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: List.generate(12, (colIndex) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: Column(
-                  children: List.generate(7, (rowIndex) {
-                    final offsetDays = (colIndex * 7) + rowIndex;
-                    final date = startDate.add(Duration(days: offsetDays));
+        // If only 1 data point, add a dummy initial 0 point so the line renders
+        if (spots.length == 1) {
+          spots.insert(0, FlSpot(-1, 0));
+        }
 
-                    // Normalize to check matching
-                    final DateKey = DateTime(date.year, date.month, date.day);
-                    int pts = 0;
-                    log.forEach((k, v) {
-                      if (k.year == DateKey.year &&
-                          k.month == DateKey.month &&
-                          k.day == DateKey.day) {
-                        pts += v;
-                      }
-                    });
-
-                    return Container(
-                      width: 12,
-                      height: 12,
-                      margin: const EdgeInsets.only(bottom: 4),
-                      decoration: BoxDecoration(
-                        color: _getHeatColor(pts),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    );
-                  }),
+        return Container(
+          height: 200,
+          padding: const EdgeInsets.only(right: 24, left: 8, top: 24, bottom: 12),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: LineChart(
+            LineChartData(
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade100, strokeWidth: 1),
+              ),
+              titlesData: FlTitlesData(
+                show: true,
+                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) {
+                      return Text(value.toInt().toString(), style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold));
+                    },
+                    reservedSize: 36,
+                  ),
                 ),
-              );
-            }),
+              ),
+              borderData: FlBorderData(show: false),
+              minX: spots.length == 2 && spots[0].x == -1 ? -1 : 0,
+              maxX: (spots.length - 1).toDouble(),
+              minY: 0,
+              maxY: maxPoints < 10 ? 10 : maxPoints + (maxPoints * 0.2),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: spots,
+                  isCurved: true,
+                  color: const Color(0xFF7B61FF),
+                  barWidth: 4,
+                  isStrokeCapRound: true,
+                  dotData: FlDotData(show: true),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    color: const Color(0xFF7B61FF).withOpacity(0.15),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
     );
-  }
-
-  Color _getHeatColor(int points) {
-    if (points == 0) return Colors.grey.shade200;
-    if (points < 5) return Colors.purple.shade100;
-    if (points < 10) return Colors.purple.shade300;
-    if (points < 20) return Colors.purple;
-    return Colors.purple.shade900;
   }
 }
 

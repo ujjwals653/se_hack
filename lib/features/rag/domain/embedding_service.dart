@@ -1,18 +1,79 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:se_hack/core/constants/api_keys.dart';
 
 /// Generates 768-dimensional text embeddings using Gemini text-embedding-004.
 class EmbeddingService {
-  // Uses geminiApiKey
-  final _model = GenerativeModel(
-    model: 'text-embedding-004',
-    apiKey: geminiApiKey,
+  int _keyIndex = 0;
+
+  GenerativeModel get _model => GenerativeModel(
+    model: 'embedding-001',
+    apiKey: geminiApiKeysPool[_keyIndex % geminiApiKeysPool.length],
   );
 
-  /// Embeds a single text string. Returns a 768-dim float list.
   Future<List<double>> embedText(String text) async {
-    final result = await _model.embedContent(Content.text(text));
-    return result.embedding.values;
+    int attempts = 0;
+    while (attempts < geminiApiKeysPool.length * 2) {
+      try {
+        final result = await _model.embedContent(Content.text(text));
+        return result.embedding.values;
+      } catch (e) {
+        final errorText = e.toString().toLowerCase();
+        if (errorText.contains('quota') ||
+            errorText.contains('429') ||
+            errorText.contains('retry in')) {
+          _keyIndex++;
+          attempts++;
+
+          if (_keyIndex % geminiApiKeysPool.length == 0) {
+            int delaySeconds = 60;
+            final match = RegExp(r'retry in ([\d\.]+)s').firstMatch(errorText);
+            if (match != null) {
+              delaySeconds = double.parse(match.group(1)!).ceil() + 1;
+            }
+            print(
+              'All keys exhausted! Waiting $delaySeconds seconds before trying again...',
+            );
+            await Future.delayed(Duration(seconds: delaySeconds));
+          } else {
+            await Future.delayed(const Duration(milliseconds: 500));
+          }
+        } else {
+          // If it's a model not found or other API error, don't crash loop, just break and fallback to OpenAI directly.
+          print('Encountered non-quota Gemini error: $errorText');
+          break;
+        }
+      }
+    }
+
+    // If we reach here, all Gemini attempts exhausted or fell back due to API error.
+    return _fallbackToOpenAiEmbedding(text);
+  }
+
+  Future<List<double>> _fallbackToOpenAiEmbedding(String text) async {
+    print('Gemini exhausted, falling back to OpenAI embedding...');
+    final response = await http.post(
+      Uri.parse('https://api.openai.com/v1/embeddings'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $openAiApiKey',
+      },
+      body: jsonEncode({
+        'input': text,
+        'model': 'text-embedding-3-small',
+        'dimensions': 768, // Match Gemini's 768 dimensions!
+      }),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final embedding = List<double>.from(
+        data['data'][0]['embedding'].map((e) => e.toDouble()),
+      );
+      return embedding;
+    } else {
+      throw Exception('OpenAI fallback also failed: ${response.body}');
+    }
   }
 
   /// Embeds a list of texts one-by-one, reporting progress each step.

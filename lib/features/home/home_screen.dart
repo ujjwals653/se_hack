@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:se_hack/core/models/app_user.dart';
 import 'package:se_hack/features/auth/auth_bloc.dart';
-import 'package:se_hack/features/timetable/presentation/screens/bunk_analytics_wrapper.dart';
+import 'package:se_hack/features/calendar/bloc/calendar_bloc.dart';
+import 'package:se_hack/features/calendar/presentation/calendar_screen.dart';
 import 'package:se_hack/features/timetable/presentation/timetable_screen.dart';
 import 'package:se_hack/features/expense/bloc/expense_cubit.dart';
 import 'package:se_hack/features/expense/presentation/expense_home_screen.dart';
@@ -19,6 +20,7 @@ import 'package:se_hack/features/friends/data/friends_repository.dart';
 import 'package:se_hack/features/attendance/domain/attendance_service.dart';
 import 'package:se_hack/features/timetable/presentation/attendance_screen.dart';
 import 'package:se_hack/features/rag/presentation/rag_screen.dart';
+import 'package:se_hack/features/profile/presentation/badge_store_screen.dart';
 
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
@@ -165,36 +167,52 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF38BDF8).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFF38BDF8).withOpacity(0.5),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BadgeStoreScreen(uid: widget.user.uid),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.stars_rounded,
-                      color: Color(0xFF38BDF8),
-                      size: 18,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF38BDF8).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF38BDF8).withOpacity(0.5),
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      context.watch<FocusService>().lifetimePoints.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.stars_rounded,
+                        color: Color(0xFF38BDF8),
+                        size: 18,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      TweenAnimationBuilder<int>(
+                        duration: const Duration(seconds: 1),
+                        tween: IntTween(begin: 0, end: context.watch<FocusService>().lifetimePoints),
+                        builder: (context, value, child) {
+                          return Text(
+                            value.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -284,10 +302,22 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                       },
                     ),
                     _buildGridItem(
-                      icon: Icons.assignment_outlined,
-                      title: 'Tasks',
+                      icon: Icons.calendar_month_outlined,
+                      title: 'Calendar',
                       color: const Color(0xFFFFD0E0),
                       iconColor: Colors.pink.shade700,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BlocProvider(
+                              create: (_) => CalendarBloc()
+                                ..add(CalendarLoadRequested()),
+                              child: const CalendarScreen(),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     _buildGridItem(
                       icon: Icons.folder_open_outlined,
