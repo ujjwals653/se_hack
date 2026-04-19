@@ -21,6 +21,7 @@ import 'package:se_hack/features/attendance/domain/attendance_service.dart';
 import 'package:se_hack/features/timetable/presentation/attendance_screen.dart';
 import 'package:se_hack/features/rag/presentation/rag_screen.dart';
 import 'package:se_hack/features/profile/presentation/badge_store_screen.dart';
+import 'package:se_hack/widgets/lab_report_preview_card.dart' as se_hack_lab;
 
 class MainHomeScreen extends StatefulWidget {
   final AppUser user;
@@ -364,6 +365,8 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                   ],
                 ),
 
+                const SizedBox(height: 24),
+                const se_hack_lab.LabReportPreviewCard(repoName: 'lab-report'),
                 const SizedBox(height: 24),
               ],
             ),
