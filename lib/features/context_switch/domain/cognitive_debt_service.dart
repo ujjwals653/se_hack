@@ -206,18 +206,36 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
 
   void _startTicker() {
     _ticker?.cancel();
+    int _lastSyncedPoints = 0;
     _ticker = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_currentState == FocusState.focusing) {
         _elapsedSeconds++;
-        
-        // Every 5 seconds, check the foreground app for penalties/rewards
+
+        // Award 1 point per every full minute elapsed
+        final earnedSoFar = _elapsedSeconds ~/ 60;
+        if (earnedSoFar > _sessionPoints) {
+          _updateSessionPoints(earnedSoFar - _sessionPoints);
+        }
+
+        // Every 5 seconds, check the foreground app for penalties
         if (_elapsedSeconds % 5 == 0) {
           _checkDistractions();
         }
 
+        // Sync to Firebase every 60 seconds to keep the DB current
+        if (_sessionPoints != _lastSyncedPoints && _elapsedSeconds % 60 == 0) {
+          final delta = _sessionPoints - _lastSyncedPoints;
+          if (delta > 0) {
+            _syncPointsToFirebase(delta);
+            _lastSyncedPoints = _sessionPoints;
+          }
+        }
+
         // Completion Check
         if (_elapsedSeconds >= _targetSeconds) {
-          _completeSession();
+          _completeSession(_lastSyncedPoints);
+          _lastSyncedPoints = _sessionPoints;
+          return;
         }
       } else if (_currentState == FocusState.onBreak) {
         _breakSecondsRemaining--;
@@ -330,14 +348,15 @@ class FocusService extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  void _completeSession() {
+  void _completeSession([int alreadySyncedPoints = 0]) {
     _ticker?.cancel();
     _currentState = FocusState.completed;
     consecutiveSessions++; // Increment streak on completion
-    
-    // Final sync — sync the full session points now!
-    if (_sessionPoints > 0) {
-      _syncPointsToFirebase(_sessionPoints);
+
+    // Sync only the remaining un-synced portion
+    final remaining = _sessionPoints - alreadySyncedPoints;
+    if (remaining > 0) {
+      _syncPointsToFirebase(remaining);
     }
     notifyListeners();
   }

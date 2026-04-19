@@ -38,10 +38,28 @@ class BadgeStoreScreen extends StatelessWidget {
 
     try {
       final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+
+      // Re-read from DB before deducting — prevents double-purchase in any race condition
+      final freshDoc = await userRef.get();
+      final freshBadges = List<String>.from(
+        (freshDoc.data() as Map<String, dynamic>?)?['badges'] ?? [],
+      );
+      if (freshBadges.contains(badge.id)) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('You already own ${badge.title}!'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
       await userRef.update({
         'points': FieldValue.increment(-badge.cost),
         'focusPoints': FieldValue.increment(-badge.cost),
-        'badges': FieldValue.arrayUnion(['${badge.emoji} ${badge.title}']),
+        'badges': FieldValue.arrayUnion([badge.id]),
       });
 
       if (context.mounted) {
@@ -56,7 +74,7 @@ class BadgeStoreScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error purchasing badge: \$e'),
+            content: Text('Error purchasing badge: $e'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -164,7 +182,7 @@ class BadgeStoreScreen extends StatelessWidget {
                   itemCount: _catalog.length,
                   itemBuilder: (context, index) {
                     final badge = _catalog[index];
-                    final isOwned = ownedBadgesList.contains('${badge.emoji} ${badge.title}');
+                    final isOwned = ownedBadgesList.contains(badge.id);
                     final isAffordable = currentPoints >= badge.cost;
 
                     return _buildBadgeCard(context, badge, isOwned, isAffordable, currentPoints);

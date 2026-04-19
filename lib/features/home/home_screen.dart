@@ -887,9 +887,12 @@ class _FriendRequestTileState extends State<_FriendRequestTile> {
   static const Color _accent = Color(0xFF7B61FF);
 
   bool _isAccepting = false;
+  bool _isDone = false;
 
   @override
   Widget build(BuildContext context) {
+    if (_isDone) return const SizedBox.shrink();
+
     final name = widget.notification['displayName'] as String? ?? 'Someone';
     final photoUrl = widget.notification['photoUrl'] as String?;
     final uid = widget.notification['uid'] as String? ?? widget.notification['id'] as String;
@@ -954,7 +957,7 @@ class _FriendRequestTileState extends State<_FriendRequestTile> {
                           await widget.repo.acceptFriendRequest(uid);
                           await Future.delayed(const Duration(seconds: 2));
                           if (mounted) {
-                            setState(() => _isAccepting = false);
+                            setState(() => _isDone = true);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('$name is now your friend!')),
                             );
@@ -1033,9 +1036,12 @@ class _SquadInviteTileState extends State<_SquadInviteTile> {
   static const Color _accent = Color(0xFF7B61FF);
 
   bool _isJoining = false;
+  bool _isDone = false;
 
   @override
   Widget build(BuildContext context) {
+    if (_isDone) return const SizedBox.shrink();
+
     final squadName = widget.notification['squadName'] as String? ?? 'a Squad';
     final squadBadge = widget.notification['squadBadge'] as String? ?? '⚔️';
     final fromName = widget.notification['fromName'] as String? ?? 'Someone';
@@ -1107,11 +1113,10 @@ class _SquadInviteTileState extends State<_SquadInviteTile> {
                           await widget.repo.acceptSquadInvite(notifId, squadId);
                           await Future.delayed(const Duration(seconds: 2));
                           if (mounted) {
-                            setState(() => _isJoining = false);
+                            setState(() => _isDone = true);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('Joined $squadName!')),
                             );
-                            widget.onAction();
                           }
                         },
                   style: ElevatedButton.styleFrom(

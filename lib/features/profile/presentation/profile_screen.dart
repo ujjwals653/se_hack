@@ -6,6 +6,7 @@ import '../../../core/models/app_user.dart';
 import '../data/profile_repository.dart';
 import '../models/user_profile_model.dart';
 import '../../friends/models/friend_model.dart';
+import '../../friends/data/friends_repository.dart';
 import 'package:fl_chart/fl_chart.dart'; // We could use fl_chart or manually draw a heatmap grid.
 // For a github style heatmap grid, building a manual widget is best for a true heatmap grid if no external lib is provided. We'll build a simple grid.
 
@@ -20,6 +21,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _profileRepo = ProfileRepository();
+  final _friendsRepo = FriendsRepository();
   static const Color _primary = Color(0xFF4C4D7B);
   static const Color _accent = Color(0xFF7B61FF);
 
@@ -124,7 +126,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _StatItem('Points', profile.points.toString(), '🔥'),
-                    _StatItem('Friends', profile.friendsCount.toString(), '👥'),
+                    StreamBuilder<int>(
+                      stream: _friendsRepo.watchFriendsCount(widget.user.uid),
+                      builder: (ctx, snap) {
+                        return _StatItem('Friends', (snap.data ?? 0).toString(), '👥');
+                      },
+                    ),
                     _StatItem(
                       'Squads',
                       profile.squadIds.length.toString(),
@@ -158,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           scrollDirection: Axis.horizontal,
                           itemCount: profile.badges.length,
                           itemBuilder: (c, i) =>
-                              _BadgeCard(name: profile.badges[i]),
+                              _BadgeCard(badgeId: profile.badges[i]),
                         ),
                       ),
 
@@ -321,26 +328,56 @@ class _StatItem extends StatelessWidget {
 }
 
 class _BadgeCard extends StatelessWidget {
-  final String name;
-  const _BadgeCard({required this.name});
+  final String badgeId;
+  const _BadgeCard({required this.badgeId});
+
+  // Maps badge IDs to their icon emoji and display name.
+  // Must match the `id` values in _catalog inside badge_store_screen.dart.
+  static const _badgeInfo = <String, Map<String, String>>{
+    'badge_early_bird':   {'icon': '🌅', 'label': 'Early Bird'},
+    'badge_night_owl':    {'icon': '🦉', 'label': 'Night Owl'},
+    'badge_focus_master': {'icon': '🧘', 'label': 'Focus Master'},
+    'badge_1_percent':    {'icon': '💎', 'label': 'Top 1%'},
+    'badge_grinder':      {'icon': '⚙️', 'label': 'Grinder'},
+    'badge_scholar':      {'icon': '🎓', 'label': 'Scholar'},
+    // Legacy / earned outside store
+    'focus_master':       {'icon': '🏆', 'label': 'Focus Master'},
+    'streak_7':           {'icon': '🔥', 'label': '7-Day Streak'},
+    'streak_30':          {'icon': '🌟', 'label': '30-Day Streak'},
+    'squad_leader':       {'icon': '👑', 'label': 'Squad Leader'},
+    'night_owl':          {'icon': '🦉', 'label': 'Night Owl'},
+  };
 
   @override
   Widget build(BuildContext context) {
+    final info = _badgeInfo[badgeId];
+    final icon  = info?['icon']  ?? '🎖️';
+    final label = info?['label'] ?? badgeId;
+
     return Container(
       width: 90,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF0C0),
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withOpacity(0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('🏆', style: TextStyle(fontSize: 32)),
+          Text(icon, style: const TextStyle(fontSize: 32)),
           const SizedBox(height: 8),
           Text(
-            name,
+            label,
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,

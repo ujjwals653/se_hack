@@ -546,15 +546,9 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
                       children: [
                         const Icon(Icons.stars_rounded, color: Colors.amber, size: 28),
                         const SizedBox(width: 8),
-                        TweenAnimationBuilder<int>(
-                          duration: const Duration(seconds: 1),
-                          tween: IntTween(begin: 0, end: fs.sessionPoints),
-                          builder: (context, value, child) {
-                            return Text(
-                              value.toString(),
-                              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2D2D3A)),
-                            );
-                          },
+                        Text(
+                          fs.sessionPoints.toString(),
+                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2D2D3A)),
                         ),
                         const SizedBox(width: 4),
                         const Text('pts', style: TextStyle(fontSize: 14, color: Colors.grey)),
@@ -627,13 +621,17 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
     }
 
     final isBreakAllowed = fs.isBreakAllowed;
-    final waitRemainingMins = max(0, 25 - (fs.elapsedSeconds ~/ 60));
+    // Time remaining until break is allowed, in seconds
+    final waitRemainingSeconds = max(0, 1500 - fs.elapsedSeconds);
+    final wMins = waitRemainingSeconds ~/ 60;
+    final wSecs = waitRemainingSeconds % 60;
+    final waitLabel = '${wMins.toString().padLeft(2, '0')}:${wSecs.toString().padLeft(2, '0')}';
 
     return ElevatedButton.icon(
       onPressed: isBreakAllowed ? () => fs.takeBreak() : null,
       icon: const Icon(Icons.coffee_rounded, size: 20),
       label: Text(
-        isBreakAllowed ? 'TAKE 5 MIN BREAK' : 'Break in $waitRemainingMins m',
+        isBreakAllowed ? 'TAKE 5 MIN BREAK' : 'Break in $waitLabel',
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
       style: ElevatedButton.styleFrom(
