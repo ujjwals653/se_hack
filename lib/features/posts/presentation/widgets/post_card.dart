@@ -69,18 +69,12 @@ class _PostCardState extends State<PostCard>
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(color: Colors.grey.shade100),
+          border: Border.symmetric(
+            horizontal: BorderSide(color: Colors.grey.shade200),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

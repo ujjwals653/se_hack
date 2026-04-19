@@ -121,14 +121,24 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: const Color(0xFFF4F5FA),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF4C4D7B),
-        foregroundColor: Colors.white,
-        title: const Text('Focus Mode'),
+        backgroundColor: const Color(0xFFF4F5FA),
+        foregroundColor: const Color(0xFF1A1A2E),
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          'Focus Mode',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF1A1A2E),
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.leaderboard_rounded),
+            icon: const Icon(Icons.leaderboard_rounded, color: Color(0xFF7B61FF)),
             tooltip: 'Leaderboard',
             onPressed: () {
               Navigator.push(
@@ -137,6 +147,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
               );
             },
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: _buildBody(fs),
@@ -163,7 +174,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.self_improvement_rounded, size: 60, color: Color(0xFF4C4D7B)),
+            const Icon(Icons.self_improvement_rounded, size: 60, color: Color(0xFF7B61FF)),
             const SizedBox(height: 16),
             const Text(
               'Set Your Focus Duration',
@@ -227,7 +238,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
                                     style: TextStyle(
                                       fontSize: isSelected ? 40 : 24,
                                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w300,
-                                      color: isSelected ? const Color(0xFF4C4D7B) : Colors.grey.shade400,
+                                      color: isSelected ? const Color(0xFF7B61FF) : Colors.grey.shade400,
                                     ),
                                   ),
                                 );
@@ -235,7 +246,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
                             ),
                           ),
                         ),
-                        const Text(':', style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFF4C4D7B))),
+                        const Text(':', style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFF7B61FF))),
                         Expanded(
                           child: ListWheelScrollView.useDelegate(
                             controller: _minutesController,
@@ -254,7 +265,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
                                     style: TextStyle(
                                       fontSize: isSelected ? 40 : 24,
                                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w300,
-                                      color: isSelected ? const Color(0xFF4C4D7B) : Colors.grey.shade400,
+                                      color: isSelected ? const Color(0xFF7B61FF) : Colors.grey.shade400,
                                     ),
                                   ),
                                 );

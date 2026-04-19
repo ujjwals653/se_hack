@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:se_hack/features/timetable/data/models/timetable.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class DayTabBar extends StatelessWidget {
   final String selectedDay;
@@ -21,7 +22,7 @@ class DayTabBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -43,9 +44,9 @@ class DayTabBar extends StatelessWidget {
                 child: Center(
                   child: Text(
                     day,
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       color: isSelected ? Colors.white : const Color(0xFF6B7280),
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       fontSize: 13,
                     ),
                   ),

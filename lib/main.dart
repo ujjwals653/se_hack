@@ -17,7 +17,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:se_hack/features/resources/models/cached_resource.dart';
-
+import 'package:go_router/go_router.dart';
+import 'package:se_hack/app/router.dart';
 import 'package:se_hack/core/services/notification_service.dart';
 
 final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
@@ -65,58 +66,49 @@ class _AppLifecycleObserver extends WidgetsBindingObserver {
   }
 }
 
-class MainApp extends StatelessWidget {
+class MainApp extends StatefulWidget {
   const MainApp({super.key});
+
+  @override
+  State<MainApp> createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  late final GoRouter _router;
+  final AuthBloc _authBloc = AuthBloc(authService: AuthService())..add(AuthStarted());
+
+  @override
+  void initState() {
+    super.initState();
+    _router = createRouter(_authBloc);
+  }
+
+  @override
+  void dispose() {
+    _authBloc.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        BlocProvider(
-          create: (_) =>
-              AuthBloc(authService: AuthService())..add(AuthStarted()),
-        ),
+        BlocProvider.value(value: _authBloc),
         BlocProvider(create: (_) => PostsBloc()..add(LoadPosts())),
         ChangeNotifierProvider(create: (_) => AttendanceService()),
         ChangeNotifierProvider(create: (_) => FocusService()),
       ],
-      child: MaterialApp(
-        navigatorKey: globalNavigatorKey,
+      child: MaterialApp.router(
+        routerConfig: _router,
         debugShowCheckedModeBanner: false,
         title: 'Lumina',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4B4B6C)),
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7B61FF)),
           useMaterial3: true,
+          scaffoldBackgroundColor: const Color(0xFFF4F5FA),
           textTheme: GoogleFonts.interTextTheme(const TextTheme()),
         ),
-        home: const _AuthGate(),
       ),
-    );
-  }
-}
-
-/// Listens to AuthBloc and routes between LoginScreen and MainHomeScreen.
-class _AuthGate extends StatelessWidget {
-  const _AuthGate();
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, state) {
-        if (state is AuthAuthenticated) {
-          return MainHomeScreen(user: state.user);
-        }
-        if (state is AuthInitial) {
-          // Splash / loading while checking persisted auth
-          return const Scaffold(
-            backgroundColor: Color(0xFF1A1A2E),
-            body: Center(
-              child: CircularProgressIndicator(color: Color(0xFF7B61FF)),
-            ),
-          );
-        }
-        return const LoginScreen();
-      },
     );
   }
 }

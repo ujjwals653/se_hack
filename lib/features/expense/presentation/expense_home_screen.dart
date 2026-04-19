@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../bloc/expense_cubit.dart';
 import '../data/expense_model.dart';
 import 'widgets/expense_tile.dart';
@@ -17,8 +18,7 @@ class ExpenseHomeScreen extends StatefulWidget {
 
 class _ExpenseHomeScreenState extends State<ExpenseHomeScreen>
     with SingleTickerProviderStateMixin {
-  static const Color _amber = Color(0xFFF5A623);
-  static const Color _bg = Color(0xFFF8F9FA);
+  static const Color _bg = Color(0xFFF4F5FA);
   late TabController _tabController;
 
   @override
@@ -26,6 +26,7 @@ class _ExpenseHomeScreenState extends State<ExpenseHomeScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     context.read<ExpenseCubit>().init();
+    _tabController.addListener(() => setState(() {}));
   }
 
   @override
@@ -51,21 +52,21 @@ class _ExpenseHomeScreenState extends State<ExpenseHomeScreen>
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: const Color(0xFFF4F5FA),
+        foregroundColor: const Color(0xFF1A1A2E),
         elevation: 0,
-        title: const Text(
+        centerTitle: true,
+        title: Text(
           'Expenses',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+          style: GoogleFonts.inter(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF1A1A2E),
           ),
         ),
         actions: [
-          // Recurring manager
           IconButton(
-            icon: const Text('🔁', style: TextStyle(fontSize: 20)),
+            icon: const Icon(Icons.repeat_rounded, color: Color(0xFF7B61FF)),
             tooltip: 'Recurring Expenses',
             onPressed: () {
               Navigator.push(
@@ -79,15 +80,17 @@ class _ExpenseHomeScreenState extends State<ExpenseHomeScreen>
               );
             },
           ),
+          const SizedBox(width: 4),
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: _amber,
-          unselectedLabelColor: Colors.black38,
-          indicatorColor: _amber,
+          labelColor: const Color(0xFF7B61FF),
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: const Color(0xFF7B61FF),
           indicatorWeight: 3,
-          labelStyle: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.bold),
+          indicatorSize: TabBarIndicatorSize.label,
+          labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700),
+          unselectedLabelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
           tabs: const [
             Tab(text: 'Home'),
             Tab(text: 'Reports'),
@@ -99,29 +102,21 @@ class _ExpenseHomeScreenState extends State<ExpenseHomeScreen>
         controller: _tabController,
         physics: const NeverScrollableScrollPhysics(),
         children: [
-          // ── Tab 0: Home feed ────────────────────────────────────────────
           _HomeTab(onEdit: _showQuickAdd),
-
-          // ── Tab 1: Analytics / Pie chart ────────────────────────────────
           const AnalyticsView(),
-
-          // ── Tab 2: Budget ───────────────────────────────────────────────
           const BudgetView(),
         ],
       ),
-      floatingActionButton: AnimatedBuilder(
-        animation: _tabController,
-        builder: (_, __) => _tabController.index == 0
-            ? FloatingActionButton(
-                onPressed: _showQuickAdd,
-                backgroundColor: _amber,
-                foregroundColor: Colors.white,
-                elevation: 4,
-                shape: const CircleBorder(),
-                child: const Icon(Icons.add, size: 28),
-              )
-            : const SizedBox.shrink(),
-      ),
+      floatingActionButton: _tabController.index == 0
+          ? FloatingActionButton(
+              onPressed: _showQuickAdd,
+              backgroundColor: const Color(0xFFFFAB61),
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add, size: 28),
+            )
+          : const SizedBox.shrink(),
     );
   }
 }
@@ -131,15 +126,13 @@ class _HomeTab extends StatelessWidget {
   final ValueChanged<Expense?> onEdit;
   const _HomeTab({required this.onEdit});
 
-  static const Color _amber = Color(0xFFF5A623);
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ExpenseCubit, ExpenseState>(
       builder: (context, state) {
         if (state is ExpenseLoading || state is ExpenseInitial) {
           return const Center(
-              child: CircularProgressIndicator(color: _amber));
+              child: CircularProgressIndicator(color: Color(0xFF7B61FF)));
         }
         if (state is ExpenseError) {
           return Center(child: Text('Error: ${state.message}'));
@@ -152,31 +145,34 @@ class _HomeTab extends StatelessWidget {
         final dayAvg = days > 0 ? total / days : 0.0;
 
         return RefreshIndicator(
-          color: _amber,
+          color: const Color(0xFF7B61FF),
           onRefresh: () => context.read<ExpenseCubit>().init(),
           child: CustomScrollView(
             slivers: [
               // ── Summary banner ────────────────────────────────────────
               SliverToBoxAdapter(
                 child: Container(
-                  margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 16),
+                  margin: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                   decoration: BoxDecoration(
-                    color: _amber,
-                    borderRadius: BorderRadius.circular(20),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFAB61), Color(0xFFFF8C42)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: _amber.withOpacity(0.35),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
+                        color: const Color(0xFFFFAB61).withValues(alpha: 0.35),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
                   child: Row(
                     children: [
                       _SummaryCol(
-                        label: 'Expenses',
+                        label: 'This Week',
                         value: '₹${total.toStringAsFixed(0)}',
                       ),
                       _divider(),
@@ -214,26 +210,24 @@ class _HomeTab extends StatelessWidget {
                         children: [
                           // Day header
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                                16, 16, 16, 8),
+                            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
                             child: Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   dayKey,
-                                  style: const TextStyle(
+                                  style: GoogleFonts.inter(
                                     fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF1A1A2E),
                                   ),
                                 ),
                                 Text(
-                                  'Daily: ₹${dayTotal.toStringAsFixed(0)}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                    fontWeight: FontWeight.w500,
+                                  '₹${dayTotal.toStringAsFixed(0)}',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade500,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],

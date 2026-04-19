@@ -51,16 +51,16 @@ class _TimetableScreenBody extends StatelessWidget {
       builder: (context, state) {
         if (state is TimetableLoading || state is TimetableInitial) {
           return const Scaffold(
-            backgroundColor: Color(0xFF4C4D7B),
+            backgroundColor: Color(0xFFF4F5FA),
             body: Center(
-              child: CircularProgressIndicator(color: Colors.white),
+              child: CircularProgressIndicator(color: Color(0xFF7B61FF)),
             ),
           );
         }
 
         if (state is TimetableProcessing) {
           return Scaffold(
-            backgroundColor: const Color(0xFF4C4D7B),
+            backgroundColor: const Color(0xFFF4F5FA),
             body: SafeArea(
               child: Center(
                 child: Column(
@@ -70,7 +70,7 @@ class _TimetableScreenBody extends StatelessWidget {
                       width: 64,
                       height: 64,
                       child: CircularProgressIndicator(
-                        color: Colors.white,
+                        color: Color(0xFF7B61FF),
                         strokeWidth: 3,
                       ),
                     ),
@@ -78,7 +78,7 @@ class _TimetableScreenBody extends StatelessWidget {
                     const Text(
                       'Analyzing your timetable...',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Color(0xFF1A1A2E),
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
@@ -87,7 +87,7 @@ class _TimetableScreenBody extends StatelessWidget {
                     Text(
                       'This may take a moment',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.grey.shade500,
                         fontSize: 14,
                       ),
                     ),
@@ -111,13 +111,13 @@ class _TimetableScreenBody extends StatelessWidget {
 
         // TimetableNotFound or TimetableError → show upload screen
         return Scaffold(
-          backgroundColor: const Color(0xFF4C4D7B),
+          backgroundColor: const Color(0xFFF4F5FA),
           body: SafeArea(
             child: Column(
               children: [
                 // App bar with back button
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   child: Row(
                     children: [
                       GestureDetector(
@@ -126,13 +126,16 @@ class _TimetableScreenBody extends StatelessWidget {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(color: Colors.grey.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
+                            ],
                           ),
                           child: const Icon(
-                            Icons.arrow_back,
-                            color: Colors.white,
-                            size: 20,
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Color(0xFF1A1A2E),
+                            size: 18,
                           ),
                         ),
                       ),
@@ -166,8 +169,8 @@ class _TimetableScreenBody extends StatelessWidget {
                       icon: const Icon(Icons.edit_calendar_outlined, size: 18),
                       label: const Text('Create Manually Instead'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white38),
+                        foregroundColor: const Color(0xFF7B61FF),
+                        side: const BorderSide(color: Color(0xFF7B61FF)),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -190,19 +193,19 @@ class _TimetableScreenBody extends StatelessWidget {
         .fold<int>(0, (sum, list) => sum + list.length);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF4C4D7B),
+      backgroundColor: const Color(0xFFF4F5FA),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
               const SizedBox(height: 20),
-              const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 64),
+              const Icon(Icons.check_circle_outline, color: Color(0xFF43E0A3), size: 64),
               const SizedBox(height: 16),
               const Text(
                 'Timetable Detected!',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF1A1A2E),
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -211,7 +214,7 @@ class _TimetableScreenBody extends StatelessWidget {
               Text(
                 '$totalEntries periods found across ${timetable.days.values.where((l) => l.isNotEmpty).length} days',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.grey.shade500,
                   fontSize: 15,
                 ),
               ),
@@ -221,8 +224,11 @@ class _TimetableScreenBody extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(color: Colors.grey.withValues(alpha: 0.08), blurRadius: 15, offset: const Offset(0, 8)),
+                    ],
                   ),
                   child: ListView(
                     children: timetable.days.entries

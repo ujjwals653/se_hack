@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../data/squad_repository.dart';
-import '../models/squad_model.dart';
-import 'squad_home_screen.dart';
 import 'squad_discovery_screen.dart';
 import 'create_squad_screen.dart';
 import 'my_squads_screen.dart';
@@ -18,9 +17,6 @@ class HubScreen extends StatefulWidget {
 }
 
 class _HubScreenState extends State<HubScreen> {
-  static const Color _primary = Color(0xFF4C4D7B);
-  static const Color _accent = Color(0xFF7B61FF);
-
   final _repo = SquadRepository();
   final _uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
@@ -34,7 +30,7 @@ class _HubScreenState extends State<HubScreen> {
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            backgroundColor: Color(0xFF4C4D7B),
+            backgroundColor: Color(0xFFF4F5FA),
             body: Center(
               child: CircularProgressIndicator(color: Color(0xFF7B61FF)),
             ),
@@ -45,8 +41,9 @@ class _HubScreenState extends State<HubScreen> {
         if (data != null &&
             data.containsKey('squadId') &&
             data['squadId'] != null) {
-          if (!squadIds.contains(data['squadId']))
+          if (!squadIds.contains(data['squadId'])) {
             squadIds.add(data['squadId']);
+          }
         }
 
         if (squadIds.isNotEmpty) {
@@ -64,263 +61,307 @@ class _NoSquadScreen extends StatelessWidget {
   final String uid;
   const _NoSquadScreen({required this.repo, required this.uid});
 
-  static const Color _primary = Color(0xFF4C4D7B);
-  static const Color _accent = Color(0xFF7B61FF);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _primary,
-      body: SafeArea(
-        child: Column(
+      backgroundColor: const Color(0xFFF4F5FA),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Pastel Header ───────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Pill Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7B61FF).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('⚔️', style: TextStyle(fontSize: 13)),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Squad Mode',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF7B61FF),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Group Hub',
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF1A1A2E),
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Study together. Win together.',
+                  style: GoogleFonts.inter(
+                    color: Colors.grey.shade500,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── White Card Panel ─────────────────────────────────────────────────
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(top: 16),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Get Started',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF1A1A2E),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // ── Action Cards ──────────────────────────────────────────
+                    _ActionCard(
+                      icon: Icons.search_rounded,
+                      iconBg: const Color(0xFF7B61FF).withValues(alpha: 0.1),
+                      iconColor: const Color(0xFF7B61FF),
+                      title: 'Browse & Join a Squad',
+                      subtitle: 'Find study squads that match your interests',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const SquadDiscoveryScreen())),
+                    ),
+                    const SizedBox(height: 10),
+                    _ActionCard(
+                      icon: Icons.group_add_rounded,
+                      iconBg: const Color(0xFF43E0A3).withValues(alpha: 0.1),
+                      iconColor: const Color(0xFF3DBF8A),
+                      title: 'Create a Squad',
+                      subtitle: 'Start your own study group and invite friends',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const CreateSquadScreen())),
+                    ),
+                    const SizedBox(height: 10),
+                    _ActionCard(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      iconBg: const Color(0xFF3BCAE5).withValues(alpha: 0.1),
+                      iconColor: const Color(0xFF1EA8C4),
+                      title: 'Add a Friend',
+                      subtitle: 'Start a private 1-on-1 chat',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              MySquadsScreen(squadIds: const [], uid: uid, repo: repo),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+                    Text(
+                      'What you can do',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF1A1A2E),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // ── Feature Grid ──────────────────────────────────────────
+                    GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 1.4,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: const [
+                        _FeatureGridCard(
+                          emoji: '💬',
+                          title: 'Squad Chat',
+                          subtitle: 'Real-time messaging',
+                          color: Color(0xFF7B61FF),
+                        ),
+                        _FeatureGridCard(
+                          emoji: '📅',
+                          title: 'Deadline Radar',
+                          subtitle: 'Shared calendar',
+                          color: Color(0xFFFFAB61),
+                        ),
+                        _FeatureGridCard(
+                          emoji: '🏆',
+                          title: 'Study Wars',
+                          subtitle: 'Compete & earn XP',
+                          color: Color(0xFF43E0A3),
+                        ),
+                        _FeatureGridCard(
+                          emoji: '📋',
+                          title: 'Kanban Board',
+                          subtitle: 'Task management',
+                          color: Color(0xFF3BCAE5),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Reusable Action Card ─────────────────────────────────────────────────────
+class _ActionCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconBg;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ActionCard({
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4F5FA),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade100),
+        ),
+        child: Row(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Group Hub',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: const Color(0xFF1A1A2E),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
-                    "Level up your study game with a squad",
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 14,
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
                     ),
                   ),
                 ],
               ),
             ),
-
-            // White card area
-            Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                ),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 10),
-
-                      // Action buttons
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SquadDiscoveryScreen(),
-                            ),
-                          ),
-                          icon: const Icon(Icons.search),
-                          label: const Text(
-                            'Browse & Join Squads',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: _primary,
-                            side: BorderSide(color: _primary.withOpacity(0.4)),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CreateSquadScreen(),
-                            ),
-                          ),
-                          icon: const Text(
-                            '⚔️',
-                            style: TextStyle(fontSize: 20),
-                          ),
-                          label: const Text(
-                            'Create a Squad',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MySquadsScreen(
-                                squadIds: const [],
-                                uid: uid,
-                                repo: repo,
-                              ),
-                            ),
-                          ),
-                          icon: const Icon(Icons.person_add),
-                          label: const Text(
-                            'Add Friend (Private Chat)',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: _primary,
-                            side: BorderSide(color: _primary.withOpacity(0.4)),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Hero illustration
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              _accent.withOpacity(0.15),
-                              _primary.withOpacity(0.1),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Text('⚔️', style: TextStyle(fontSize: 52)),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-                      const Text(
-                        "You're not in a Squad yet!",
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A1A2E),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Join a squad to compete in Study Wars, earn trophies together, and crush goals as a team.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                          height: 1.5,
-                        ),
-                      ),
-
-                      const SizedBox(height: 36),
-
-                      // Feature bullets
-                      ..._features.map(
-                        (f) => _FeatureTile(
-                          icon: f[0],
-                          title: f[1],
-                          subtitle: f[2],
-                        ),
-                      ),
-
-                      const SizedBox(height: 50),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey.shade400),
           ],
         ),
       ),
     );
   }
-
-  static const _features = [
-    ['💬', 'Squad Chat', 'Real-time chat with code snippets & whiteboard'],
-    ['📅', 'Deadline Radar', 'Shared squad calendar for assignments/exams'],
-  ];
 }
 
-class _FeatureTile extends StatelessWidget {
-  final String icon;
+// ─── Feature Grid Card ────────────────────────────────────────────────────────
+class _FeatureGridCard extends StatelessWidget {
+  final String emoji;
   final String title;
   final String subtitle;
-  const _FeatureTile({
-    required this.icon,
+  final Color color;
+
+  const _FeatureGridCard({
+    required this.emoji,
     required this.title,
     required this.subtitle,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F5FA),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
-            width: 48,
-            height: 48,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF4C4D7B).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Center(
-              child: Text(icon, style: const TextStyle(fontSize: 22)),
-            ),
+            child: Text(emoji, style: const TextStyle(fontSize: 18)),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Color(0xFF1A1A2E),
-                  ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  color: const Color(0xFF1A1A2E),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              Text(
+                subtitle,
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  color: Colors.grey.shade500,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

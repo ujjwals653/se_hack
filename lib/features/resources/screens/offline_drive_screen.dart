@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
@@ -108,28 +109,27 @@ class _OfflineDriveScreenState extends State<OfflineDriveScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F4FF),
+      backgroundColor: const Color(0xFFF4F5FA),
       appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4C4D7B), _accent],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+        backgroundColor: const Color(0xFFF4F5FA),
+        foregroundColor: const Color(0xFF1A1A2E),
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          'My Drive',
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            color: const Color(0xFF1A1A2E),
           ),
         ),
-        foregroundColor: Colors.white,
-        title: const Text('My Drive', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        elevation: 0,
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _pickAndSave,
-        backgroundColor: _accent,
+        backgroundColor: const Color(0xFF7B61FF),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.upload_file_rounded),
-        label: const Text('Upload', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: Text('Upload', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
       ),
       body: _files.isEmpty
           ? Center(
@@ -155,9 +155,9 @@ class _OfflineDriveScreenState extends State<OfflineDriveScreen> {
               ),
             )
           : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
               itemCount: _files.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (_, i) => _DriveTile(
                 resource: _files[i],
                 onDelete: () => _delete(_files[i]),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../bloc/posts_bloc.dart';
 import '../../data/post_model.dart';
 import '../widgets/post_card.dart';
@@ -21,29 +22,44 @@ class PostsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: const Color(0xFFF4F5FA),
       body: Column(
         children: [
           // ── Header ──
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            decoration: const BoxDecoration(
-              color: Color(0xFF4C4D7B),
-              borderRadius: BorderRadius.vertical(
-                bottom: Radius.circular(24),
-              ),
-            ),
+            padding: EdgeInsets.fromLTRB(20, topPad + 12, 20, 16),
             child: Row(
               children: [
-                const Icon(Icons.local_fire_department_rounded,
-                    color: Color(0xFFFF6B35), size: 28),
-                const SizedBox(width: 10),
-                const Text(
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B35).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                     mainAxisSize: MainAxisSize.min,
+                     children: [
+                       const Icon(Icons.local_fire_department_rounded, color: Color(0xFFFF6B35), size: 18),
+                       const SizedBox(width: 4),
+                       Text(
+                         'Community',
+                         style: GoogleFonts.inter(
+                           color: const Color(0xFFFF6B35),
+                           fontSize: 12,
+                           fontWeight: FontWeight.w700,
+                         ),
+                       ),
+                     ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
                   'Posts',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF1A1A2E),
+                    fontSize: 26,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.5,
                   ),
@@ -140,7 +156,7 @@ class PostsScreen extends StatelessWidget {
                 }
 
                 return RefreshIndicator(
-                  color: const Color(0xFF4C4D7B),
+                  color: const Color(0xFFFF6B35),
                   onRefresh: () async {
                     context.read<PostsBloc>().add(RefreshPosts());
                     await Future.delayed(const Duration(milliseconds: 500));
@@ -168,7 +184,7 @@ class PostsScreen extends StatelessWidget {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Color(0xFF4C4D7B),
+                                  color: Color(0xFFFF6B35),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -227,7 +243,7 @@ class PostsScreen extends StatelessWidget {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 72),
         child: FloatingActionButton(
-          backgroundColor: const Color(0xFF4C4D7B),
+          backgroundColor: const Color(0xFFFF6B35),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
